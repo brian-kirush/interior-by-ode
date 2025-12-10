@@ -960,11 +960,11 @@
 
         @media (max-width: 768px) {
             .content {
-                padding: 20px;
+                padding: 20px 15px; /* Reduce horizontal padding */
             }
             .page-header {
-                padding: 25px;
-                text-align: center;
+                padding: 25px 20px; /* Reduce horizontal padding */
+                text-align: left;
             }
             .page-header h2 {
                 font-size: var(--font-size-2xl);
@@ -984,7 +984,7 @@
                 gap: 18px;
             }
             .calculator-container {
-                padding: 20px;
+                padding: 20px 15px; /* Reduce horizontal padding */
             }
             .calculator-actions {
                 flex-direction: column;
@@ -994,13 +994,15 @@
                 justify-content: center;
             }
             .header {
-                padding: 18px 20px;
+                padding: 18px 15px; /* Reduce horizontal padding */
                 flex-direction: column;
                 gap: 12px;
                 text-align: center;
-            }
-            .header {
                 position: relative;
+            }
+            .items-table-wrapper {
+                overflow-x: auto; /* Allow tables to scroll horizontally */
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
             }
             .pdf-content {
                 padding: 25px;
