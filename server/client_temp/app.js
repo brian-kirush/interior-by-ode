@@ -811,7 +811,8 @@ function applyMobileFixes() {
     // Hide the floating mobile menu button as it's not being used.
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     if (mobileMenuBtn) {
-        mobileMenuBtn.style.display = 'none';
+        // More definitive than hiding: remove the element from the DOM completely.
+        mobileMenuBtn.remove();
     }
 
     // Set custom viewport height variable
