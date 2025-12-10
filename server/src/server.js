@@ -32,6 +32,10 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Trust the first proxy in front of the app (e.g., Render's reverse proxy)
+// This is crucial for secure cookies to work correctly.
+app.set('trust proxy', 1);
+
 // Import database connection pool for session store
 const pool = require('./config/database');
 const pgSession = require('connect-pg-simple')(session);
@@ -39,18 +43,17 @@ const pgSession = require('connect-pg-simple')(session);
 // Session configuration
 app.use(session({
     store: new pgSession({
-        pool: pool,                // Connection pool
+        pool: pool,
         tableName: 'user_sessions', // Use a custom table name
-        createTableIfMissing: true, // Automatically create the table
-        // ttl: 24 * 60 * 60 // Session TTL in seconds (e.g., 24 hours)
+        createTableIfMissing: true
     }),
-    secret: process.env.SESSION_SECRET || 'interior-by-ode-secret-key-change-in-production',
+    secret: process.env.SESSION_SECRET || 'interior-by-ode-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: true, // MUST be true for production (HTTPS)
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        sameSite: 'none', // IMPORTANT for cross-origin on Render
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
