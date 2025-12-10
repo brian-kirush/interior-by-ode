@@ -1,5 +1,4 @@
 const { Pool } = require('pg');
-const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const pool = new Pool({

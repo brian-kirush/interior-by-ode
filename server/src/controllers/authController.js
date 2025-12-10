@@ -1,4 +1,5 @@
-const User = require('../models/User');
+const { query } = require('../config/database');
+const bcrypt = require('bcryptjs');
 
 class AuthController {
     static async login(req, res) {
@@ -12,15 +13,15 @@ class AuthController {
                 });
             }
 
-            const user = await User.findByEmail(email);
+            const userResult = await query('SELECT * FROM users WHERE email = $1', [email]);
+            const user = userResult.rows[0];
             if (!user) {
                 return res.status(401).json({
                     success: false,
                     message: 'Invalid credentials'
                 });
             }
-
-            const isValidPassword = await User.verifyPassword(password, user.password_hash);
+            const isValidPassword = await bcrypt.compare(password, user.password_hash);
             if (!isValidPassword) {
                 return res.status(401).json({
                     success: false,
