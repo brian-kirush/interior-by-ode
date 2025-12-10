@@ -882,13 +882,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDashboardNavigation();
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
     document.querySelectorAll('input.form-control').forEach(input => {
-        input.addEventListener('focus', () => {
-            document.body.style.paddingBottom = '300px';
-            input.scrollIntoView({ block: 'center' });
-        });
-        input.addEventListener('blur', () => {
-            document.body.style.paddingBottom = '0';
-        });
+        if (state.isIOS) { // Apply keyboard fixes primarily for iOS where it's most problematic
+            input.addEventListener('focus', () => {
+                // Briefly scroll the input into the middle of the view
+                setTimeout(() => {
+                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            });
+        }
     });
     document.getElementById('password')?.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') {
@@ -917,6 +918,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // sidebarToggle?.addEventListener('click', () => {
     //     sidebar.classList.toggle('active');
     // });
+
+    // --- Responsive Fixes ---
+    // Make the calculator table horizontally scrollable on mobile
+    const itemsTable = document.getElementById('itemsTableBody')?.parentElement;
+    if (itemsTable) {
+        const wrapper = document.createElement('div');
+        wrapper.style.overflowX = 'auto';
+        itemsTable.parentNode.insertBefore(wrapper, itemsTable);
+        wrapper.appendChild(itemsTable);
+    }
 
     // --- Global Listeners ---
     window.addEventListener('orientationchange', () => {
