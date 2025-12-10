@@ -9,11 +9,19 @@ router.use(requireAuth);
 router.get('/project/:projectId', async (req, res) => {
     try {
         const { projectId } = req.params;
-        const result = await pool.query(
-            'SELECT * FROM tasks WHERE project_id = $1 ORDER BY due_date ASC',
-            [projectId]
-        );
-        
+        let result;
+
+        if (projectId === 'all') {
+            // Fetch all tasks and join with project name
+            result = await pool.query(`
+                SELECT t.*, p.name as project_name 
+                FROM tasks t 
+                LEFT JOIN projects p ON t.project_id = p.id 
+                ORDER BY t.due_date ASC`);
+        } else {
+            result = await pool.query('SELECT * FROM tasks WHERE project_id = $1 ORDER BY due_date ASC', [projectId]);
+        }
+
         res.json({
             success: true,
             message: 'Tasks retrieved',

@@ -29,6 +29,7 @@ const state = {
     projectSortDirection: 'asc',
     allQuotations: [],
     allInvoices: [],
+    allTasks: [],
     allClients: [],
     currentUser: null, // Holds logged-in user data
     isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
@@ -257,6 +258,9 @@ function navigateToPage(pageId) {
         case 'invoices':
             loadInvoices();
             break;
+        case 'tasks':
+            loadTasks();
+            break;
         case 'settings':
             loadSettings();
             break;
@@ -449,6 +453,43 @@ function renderInvoicesTable(invoices) {
             <td>
                 <button class="btn btn-sm btn-secondary view-invoice-btn" data-id="${invoice.id}"><i class="fas fa-eye"></i></button>
                 <button class="btn btn-sm btn-danger delete-invoice-btn" data-id="${invoice.id}"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+async function loadTasks() {
+    try {
+        // For now, we load all tasks. This could be filtered by project later.
+        const result = await apiFetch(`${API_BASE_URL}/tasks/project/all`); // Assuming an endpoint to get all tasks
+        if (result.success) {
+            state.allTasks = result.data;
+            renderTasksTable(state.allTasks);
+        }
+    } catch (error) {
+        console.error("Failed to load tasks:", error);
+    }
+}
+
+function renderTasksTable(tasks) {
+    const tableBody = document.getElementById('tasksTableBody');
+    tableBody.innerHTML = '';
+    if (tasks.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No tasks found.</td></tr>';
+        return;
+    }
+    tasks.forEach(task => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${task.title}</td>
+            <td>${task.project_name || 'N/A'}</td>
+            <td><span class="status-badge status-${task.status.replace(' ', '_')}">${task.status}</span></td>
+            <td><span class="priority-badge priority-${task.priority}">${task.priority}</span></td>
+            <td>${formatDate(task.due_date)}</td>
+            <td>
+                <button class="btn btn-sm btn-secondary edit-task-btn" data-id="${task.id}"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger delete-task-btn" data-id="${task.id}"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tableBody.appendChild(row);
@@ -813,7 +854,7 @@ async function initializeApp() {
 function setupDashboardNavigation() {
     document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
     document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
-    document.getElementById('pendingTasksCard')?.addEventListener('click', () => showNotification('Tasks page is not yet implemented.', 'error'));
+    document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
     document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
 }
 
@@ -912,6 +953,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (e.target.closest('.delete-invoice-btn')) {
             handleDeleteInvoice(e.target.closest('.delete-invoice-btn').dataset.id);
+        }
+
+        // Task actions
+        if (e.target.closest('.edit-task-btn')) {
+            showNotification('Edit task is not yet implemented.', 'error');
+        }
+        if (e.target.closest('.delete-task-btn')) {
+            handleDeleteTask(e.target.closest('.delete-task-btn').dataset.id);
         }
 
         // Calculator actions

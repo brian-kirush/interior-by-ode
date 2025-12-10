@@ -34,9 +34,10 @@ router.get('/stats', async (req, res) => {
             );
             pendingTasks = parseInt(pendingTasksResult.rows[0].count) || 0;
         } catch (e) {
-            if (e.code === '42P01') { // '42P01' is undefined_table error in PostgreSQL
-                console.warn('Warning: "tasks" table not found. Defaulting pending tasks to 0.');
-            } else { throw e; }
+            if (e.code !== '42P01') { // '42P01' is undefined_table in PostgreSQL
+                throw e; // Re-throw unexpected errors
+            }
+            console.warn('Warning: "tasks" table not found. Defaulting pending tasks to 0.');
         }
 
         // Client Satisfaction (now that the table exists)
@@ -44,7 +45,8 @@ router.get('/stats', async (req, res) => {
             const satisfactionResult = await pool.query("SELECT AVG(rating) as avg_rating FROM reviews WHERE rating IS NOT NULL");
             clientSatisfaction = Math.round(satisfactionResult.rows[0].avg_rating * 20) || 95; // Convert 1-5 scale to 0-100
         } catch (e) {
-            if (e.code === '42P01') { console.warn('Warning: "reviews" table not found. Using default satisfaction value.'); } else { throw e; }
+            if (e.code !== '42P01') { throw e; }
+            console.warn('Warning: "reviews" table not found. Using default satisfaction value.');
         }
 
         // Total clients
