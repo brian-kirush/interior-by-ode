@@ -1,9 +1,9 @@
-const { query } = require('../config/database');
+const pool = require('../config/database'); // Import the pool directly
 const bcrypt = require('bcryptjs');
 
 class User {
     static async findByEmail(email) {
-        const result = await query(
+        const result = await pool.query( // Use pool.query()
             'SELECT id, name, email, password_hash, role FROM users WHERE email = $1',
             [email]
         );
@@ -18,7 +18,7 @@ class User {
         const { name, email, password, role } = data;
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        const result = await query(
+        const result = await pool.query( // Use pool.query()
             `INSERT INTO users (name, email, password_hash, role) 
              VALUES ($1, $2, $3, $4) 
              RETURNING id, name, email, role`,

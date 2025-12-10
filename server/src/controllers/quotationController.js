@@ -121,7 +121,7 @@ class QuotationController {
             const quotationId = quotationResult.rows[0].id;
 
             for (const item of items) {
-                await query(
+                await client.query(
                     `INSERT INTO quotation_items (
                         quotation_id, description, unit, quantity, unit_price, total
                     ) VALUES ($1, $2, $3, $4, $5, $6)`,

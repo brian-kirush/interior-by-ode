@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { query } = require('../config/database');
+const pool = require('../config/database'); // Import the pool directly
 const { requireAuth } = require('../middleware/auth');
 
 router.use(requireAuth);
@@ -8,7 +8,7 @@ router.use(requireAuth);
 // Get all settings
 router.get('/', async (req, res) => {
     try {
-        const result = await query('SELECT setting_key, setting_value FROM settings');
+        const result = await pool.query('SELECT setting_key, setting_value FROM settings');
         const settings = {};
         result.rows.forEach(row => {
             settings[row.setting_key] = row.setting_value;
@@ -34,7 +34,7 @@ router.put('/', async (req, res) => {
         const settings = req.body;
         
         for (const [key, value] of Object.entries(settings)) {
-            await query(
+            await pool.query(
                 `INSERT INTO settings (setting_key, setting_value) 
                  VALUES ($1, $2) 
                  ON CONFLICT (setting_key) 

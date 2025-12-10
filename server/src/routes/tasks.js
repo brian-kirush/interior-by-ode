@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { query } = require('../config/database');
+const pool = require('../config/database'); // Import the pool directly
 const { requireAuth } = require('../middleware/auth');
 
 router.use(requireAuth);
@@ -9,7 +9,7 @@ router.use(requireAuth);
 router.get('/project/:projectId', async (req, res) => {
     try {
         const { projectId } = req.params;
-        const result = await query(
+        const result = await pool.query(
             'SELECT * FROM tasks WHERE project_id = $1 ORDER BY due_date ASC',
             [projectId]
         );
@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
             });
         }
 
-        const result = await query(
+        const result = await pool.query(
             `INSERT INTO tasks (project_id, title, description, priority, assigned_to, due_date) 
              VALUES ($1, $2, $3, $4, $5, $6) 
              RETURNING *`,
@@ -80,7 +80,7 @@ router.put('/:id/status', async (req, res) => {
             updateData.completed_at = new Date().toISOString();
         }
 
-        const result = await query(
+        const result = await pool.query(
             `UPDATE tasks 
              SET status = $1, completed_at = $2 
              WHERE id = $3 
@@ -113,7 +113,7 @@ router.put('/:id/status', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await query(
+            const result = await pool.query(
             'DELETE FROM tasks WHERE id = $1 RETURNING id',
             [id]
         );
