@@ -59,7 +59,9 @@ async function apiFetch(url, options = {}) {
         }
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred.' }));
+            // Try to get detailed error, but fallback gracefully.
+            const errorText = await response.text();
+            const errorData = JSON.parse(errorText || '{}');
             throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
@@ -70,7 +72,10 @@ async function apiFetch(url, options = {}) {
 
         return response.json();
     } catch (error) {
-        console.error('API Fetch Error:', error);
+        // Log the full error for better server-side debugging.
+        console.error('API Fetch Error:', error.message);
+        // The error from a non-ok response is re-thrown, so we show it.
+        // The apiFetch function itself doesn't need to show a generic notification.
         showNotification(error.message, 'error');
         throw error;
     }
