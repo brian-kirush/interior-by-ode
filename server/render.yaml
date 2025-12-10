@@ -2,10 +2,10 @@ services:
   - type: web
     name: interior-by-ode
     runtime: node
-    buildCommand: npm install
+    buildCommand: npm install  # Now runs from the root directory
     plan: free
-    startCommand: node src/server.js
-    rootDir: .
+    startCommand: node src/server.js  # Path to your server from the root
+    rootDir: .  # ✅ The period (.) means "use the repository root"
     envVars:
       - key: NODE_ENV
         value: production
@@ -21,9 +21,3 @@ services:
         value: https://interior-by-ode.onrender.com
     healthCheckPath: /health
     autoDeploy: true
-
-databases:
-  - name: interiors_db
-    databaseName: interiors_db
-    user: interiors_user
-    plan: free
