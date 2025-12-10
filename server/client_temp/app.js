@@ -266,21 +266,44 @@ function navigateToPage(pageId) {
 async function loadDashboardStats() {
     try {
         const result = await apiFetch(`${API_BASE_URL}/dashboard/stats`);
-        if (result.success && result.data) {
+        // Log the entire response for debugging purposes.
+        console.log('Dashboard Stats API Response:', result);
+
+        if (result && result.success && result.data) {
             const { data } = result;
-            document.getElementById('activeProjects').textContent = data.activeProjects;
-            document.getElementById('monthlyRevenue').textContent = formatCurrency(data.monthlyRevenue);
-            document.getElementById('pendingTasks').textContent = data.pendingTasks;
-            document.getElementById('clientSatisfaction').textContent = `${data.clientSatisfaction}%`;
+
+            // Check for main stats and log a warning if a field is missing.
+            document.getElementById('activeProjects').textContent = data.activeProjects ?? 'N/A';
+            if (data.activeProjects === undefined) console.warn('Dashboard stats missing: activeProjects');
+
+            document.getElementById('monthlyRevenue').textContent = formatCurrency(data.monthlyRevenue ?? 0);
+            if (data.monthlyRevenue === undefined) console.warn('Dashboard stats missing: monthlyRevenue');
+
+            document.getElementById('pendingTasks').textContent = data.pendingTasks ?? 'N/A';
+            if (data.pendingTasks === undefined) console.warn('Dashboard stats missing: pendingTasks');
+
+            document.getElementById('clientSatisfaction').textContent = `${data.clientSatisfaction ?? 0}%`;
+            if (data.clientSatisfaction === undefined) console.warn('Dashboard stats missing: clientSatisfaction');
             
+            // Check for trends data.
             if (data.trends) {
-                document.getElementById('projectsTrend').textContent = `${data.trends.projects > 0 ? '+' : ''}${data.trends.projects}`;
-                document.getElementById('revenueTrend').textContent = `${data.trends.revenue > 0 ? '+' : ''}${data.trends.revenue}%`;
-                document.getElementById('tasksTrend').textContent = `${data.trends.tasks > 0 ? '+' : ''}${data.trends.tasks}`;
+                document.getElementById('projectsTrend').textContent = `${data.trends.projects > 0 ? '+' : ''}${data.trends.projects ?? 0}`;
+                if (data.trends.projects === undefined) console.warn('Dashboard trends missing: projects');
+
+                document.getElementById('revenueTrend').textContent = `${data.trends.revenue > 0 ? '+' : ''}${data.trends.revenue ?? 0}%`;
+                if (data.trends.revenue === undefined) console.warn('Dashboard trends missing: revenue');
+
+                document.getElementById('tasksTrend').textContent = `${data.trends.tasks > 0 ? '+' : ''}${data.trends.tasks ?? 0}`;
+                if (data.trends.tasks === undefined) console.warn('Dashboard trends missing: tasks');
+            } else {
+                console.warn('Dashboard stats object missing: trends');
             }
+        } else {
+            showNotification('Could not retrieve dashboard statistics.', 'error');
         }
     } catch (error) {
         console.error("Failed to load dashboard stats:", error);
+        showNotification('An error occurred while fetching dashboard stats.', 'error');
     }
 }
 
