@@ -266,16 +266,18 @@ function navigateToPage(pageId) {
 async function loadDashboardStats() {
     try {
         const result = await apiFetch(`${API_BASE_URL}/dashboard/stats`);
-        if (result.success) {
+        if (result.success && result.data) {
             const { data } = result;
             document.getElementById('activeProjects').textContent = data.activeProjects;
             document.getElementById('monthlyRevenue').textContent = formatCurrency(data.monthlyRevenue);
             document.getElementById('pendingTasks').textContent = data.pendingTasks;
             document.getElementById('clientSatisfaction').textContent = `${data.clientSatisfaction}%`;
-            // Trends
-            document.getElementById('projectsTrend').textContent = `${data.trends.projects > 0 ? '+' : ''}${data.trends.projects}`;
-            document.getElementById('revenueTrend').textContent = `${data.trends.revenue > 0 ? '+' : ''}${data.trends.revenue}%`;
-            document.getElementById('tasksTrend').textContent = `${data.trends.tasks > 0 ? '+' : ''}${data.trends.tasks}`;
+            
+            if (data.trends) {
+                document.getElementById('projectsTrend').textContent = `${data.trends.projects > 0 ? '+' : ''}${data.trends.projects}`;
+                document.getElementById('revenueTrend').textContent = `${data.trends.revenue > 0 ? '+' : ''}${data.trends.revenue}%`;
+                document.getElementById('tasksTrend').textContent = `${data.trends.tasks > 0 ? '+' : ''}${data.trends.tasks}`;
+            }
         }
     } catch (error) {
         console.error("Failed to load dashboard stats:", error);
