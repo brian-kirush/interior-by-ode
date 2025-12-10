@@ -32,8 +32,18 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Import database connection pool for session store
+const pool = require('./config/database');
+const pgSession = require('connect-pg-simple')(session);
+
 // Session configuration
 app.use(session({
+    store: new pgSession({
+        pool: pool,                // Connection pool
+        tableName: 'user_sessions', // Use a custom table name
+        createTableIfMissing: true, // Automatically create the table
+        // ttl: 24 * 60 * 60 // Session TTL in seconds (e.g., 24 hours)
+    }),
     secret: process.env.SESSION_SECRET || 'interior-by-ode-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
@@ -44,14 +54,6 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
-
-// Import database connection for health check
-let pool;
-try {
-    pool = require('./config/database');
-} catch (error) {
-    console.warn('⚠️  Database config not found or error loading it:', error.message);
-}
 
 // Import routes
 const authRoutes = require('./routes/auth');
