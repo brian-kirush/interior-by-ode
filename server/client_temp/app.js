@@ -129,10 +129,14 @@ async function handleLogin() {
     const password = document.getElementById('password').value;
     const loginBtn = document.getElementById('loginBtn');
     const loginMessage = document.getElementById('loginMessage');
+    const loginBtnText = loginBtn.querySelector('.login-btn-text');
+    const loginSpinner = loginBtn.querySelector('.loader-spinner');
 
     loginBtn.disabled = true;
     loginMessage.style.display = 'none';
-
+    loginBtnText.style.display = 'none';
+    loginSpinner.style.display = 'inline-block';
+    
     try {
         const result = await apiFetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
@@ -152,6 +156,8 @@ async function handleLogin() {
         loginMessage.style.display = 'block';
     } finally {
         loginBtn.disabled = false;
+        loginBtnText.style.display = 'inline-block';
+        loginSpinner.style.display = 'none';
     }
 }
 
@@ -650,6 +656,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+    document.getElementById('password')?.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    });
     document.getElementById('logoutBtnMobile')?.addEventListener('click', handleLogout);
 
     // --- Navigation ---

@@ -1,10 +1,10 @@
-const { query } = require('../config/database');
+const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 
 class QuotationController {
     async getAllQuotations(req, res) {
         try {
-            const result = await query(`
+            const result = await pool.query(`
                 SELECT q.*, c.name as client_name
                 FROM quotations q
                 LEFT JOIN clients c ON q.client_id = c.id
@@ -29,7 +29,7 @@ class QuotationController {
         try {
             const { id } = req.params;
             
-            const quotationResult = await query(`
+            const quotationResult = await pool.query(`
                 SELECT q.*, c.name as client_name, c.email as client_email, 
                        c.phone as client_phone, c.address as client_address,
                        c.company as client_company
@@ -47,7 +47,7 @@ class QuotationController {
 
             const quotation = quotationResult.rows[0];
 
-            const itemsResult = await query(
+            const itemsResult = await pool.query(
                 'SELECT * FROM quotation_items WHERE quotation_id = $1 ORDER BY id ASC',
                 [id]
             );
@@ -69,7 +69,8 @@ class QuotationController {
     }
 
     async createQuotation(req, res) {
-        const client = await query('BEGIN');
+        const client = await pool.connect();
+        await client.query('BEGIN');
         
         try {
             const {
@@ -87,7 +88,7 @@ class QuotationController {
             } = req.body;
 
             if (!client_id || !items || !Array.isArray(items) || items.length === 0) {
-                await query('ROLLBACK');
+                await client.query('ROLLBACK');
                 return res.status(400).json({
                     success: false,
                     message: 'Client ID and at least one item are required'
@@ -97,7 +98,7 @@ class QuotationController {
             const finalQuotationNumber = quotation_number || 
                 `QB-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
 
-            const quotationResult = await query(
+            const quotationResult = await client.query(
                 `INSERT INTO quotations (
                     quotation_number, client_id, project_id, subtotal, tax_rate, 
                     tax_amount, discount_amount, total, notes, valid_until, status
@@ -135,7 +136,7 @@ class QuotationController {
                 );
             }
 
-            await query('COMMIT');
+            await client.query('COMMIT');
 
             res.status(201).json({
                 success: true,
@@ -147,12 +148,14 @@ class QuotationController {
                 }
             });
         } catch (error) {
-            await query('ROLLBACK');
+            await client.query('ROLLBACK');
             console.error('Create quotation error:', error);
             res.status(500).json({
                 success: false,
                 message: 'Failed to create quotation'
             });
+        } finally {
+            client.release();
         }
     }
 
@@ -169,7 +172,7 @@ class QuotationController {
                 });
             }
 
-            const result = await query(
+        const result = await pool.query(
                 `UPDATE quotations 
                  SET status = $1 
                  WHERE id = $2 
@@ -202,7 +205,7 @@ class QuotationController {
         try {
             const { id } = req.params;
 
-            const result = await query(
+            const result = await pool.query(
                 'DELETE FROM quotations WHERE id = $1 RETURNING id',
                 [id]
             );

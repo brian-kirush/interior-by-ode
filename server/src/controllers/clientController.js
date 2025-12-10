@@ -1,9 +1,9 @@
-const { query } = require('../config/database');
+const pool = require('../config/database');
 
 class ClientController {
     static async getAll(req, res) {
         try {
-            const result = await query('SELECT * FROM clients ORDER BY name ASC');
+            const result = await pool.query('SELECT * FROM clients ORDER BY name ASC');
             res.json({
                 success: true,
                 message: 'Clients retrieved successfully',
@@ -21,7 +21,7 @@ class ClientController {
     static async getById(req, res) {
         try {
             const { id } = req.params;
-            const result = await query('SELECT * FROM clients WHERE id = $1', [id]);
+            const result = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
             const client = result.rows[0];
 
             if (!client) {
@@ -57,7 +57,7 @@ class ClientController {
             }
 
             // Check if email exists
-            const existingResult = await query('SELECT id FROM clients WHERE email = $1', [email]);
+            const existingResult = await pool.query('SELECT id FROM clients WHERE email = $1', [email]);
             if (existingResult.rows.length > 0) {
                 return res.status(409).json({
                     success: false,
@@ -65,7 +65,7 @@ class ClientController {
                 });
             }
 
-            const result = await query(
+            const result = await pool.query(
                 `INSERT INTO clients (name, company, email, phone, address) 
                  VALUES ($1, $2, $3, $4, $5) 
                  RETURNING *`,
@@ -98,7 +98,7 @@ class ClientController {
                 });
             }
 
-            const existingResult = await query('SELECT id FROM clients WHERE email = $1 AND id != $2', [email, id]);
+            const existingResult = await pool.query('SELECT id FROM clients WHERE email = $1 AND id != $2', [email, id]);
             if (existingResult.rows.length > 0) {
                 return res.status(409).json({
                     success: false,
@@ -106,7 +106,7 @@ class ClientController {
                 });
             }
 
-            const result = await query(
+            const result = await pool.query(
                 `UPDATE clients 
                  SET name = $1, company = $2, email = $3, phone = $4, address = $5, updated_at = NOW()
                  WHERE id = $6
@@ -141,7 +141,7 @@ class ClientController {
             const { id } = req.params;
 
             // Check if client has projects
-            const projectCheck = await query('SELECT id FROM projects WHERE client_id = $1 LIMIT 1', [id]);
+            const projectCheck = await pool.query('SELECT id FROM projects WHERE client_id = $1 LIMIT 1', [id]);
             if (projectCheck.rows.length > 0) {
                 return res.status(409).json({
                     success: false,
@@ -149,7 +149,7 @@ class ClientController {
                 });
             }
 
-            const result = await query('DELETE FROM clients WHERE id = $1 RETURNING id', [id]);
+            const result = await pool.query('DELETE FROM clients WHERE id = $1 RETURNING id', [id]);
             const client = result.rows[0];
 
             if (!client) {

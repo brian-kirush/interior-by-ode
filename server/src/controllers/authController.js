@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 class AuthController {
@@ -13,7 +13,7 @@ class AuthController {
                 });
             }
 
-            const userResult = await query('SELECT * FROM users WHERE email = $1', [email]);
+            const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
             const user = userResult.rows[0];
             if (!user) {
                 return res.status(401).json({

@@ -1,11 +1,11 @@
 // server/src/controllers/invoiceController.js
-const { query } = require('../config/database');
+const pool = require('../config/database');
 
 const InvoiceController = {
     // Get all invoices
     getAll: async (req, res) => {
         try {
-            const result = await query(`
+            const result = await pool.query(`
                 SELECT i.*, c.name as client_name
                 FROM invoices i
                 LEFT JOIN clients c ON i.client_id = c.id
@@ -29,7 +29,7 @@ const InvoiceController = {
     getById: async (req, res) => {
         const { id } = req.params;
         try {
-            const invoiceResult = await query(`
+            const invoiceResult = await pool.query(`
                 SELECT i.*, c.name as client_name, c.email as client_email, 
                        c.phone as client_phone, c.address as client_address
                 FROM invoices i
@@ -44,7 +44,7 @@ const InvoiceController = {
             const invoice = invoiceResult.rows[0];
 
             // Assuming an `invoice_items` table exists
-            const itemsResult = await query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
+            const itemsResult = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
             invoice.items = itemsResult.rows;
 
             res.json({ success: true, message: `Invoice ${id} retrieved`, data: invoice });
@@ -56,7 +56,7 @@ const InvoiceController = {
 
     create: async (req, res) => {
         const { client_id, quotation_id, project_id, items, ...invoiceData } = req.body;
-        const dbClient = await query.connect(); // Use a client from the pool for transactions
+        const dbClient = await pool.connect(); // Use a client from the pool for transactions
         try {
             await dbClient.query('BEGIN');
             const invoiceNumber = `INV-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
@@ -105,7 +105,7 @@ const InvoiceController = {
         }
 
         try {
-            const result = await query(
+            const result = await pool.query(
                 'UPDATE invoices SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
                 [status, id]
             );
@@ -129,7 +129,7 @@ const InvoiceController = {
         const { id } = req.params;
         try {
             // The 'invoice_items' table should have ON DELETE CASCADE for this to work cleanly
-            const result = await query('DELETE FROM invoices WHERE id = $1 RETURNING id', [id]);
+            const result = await pool.query('DELETE FROM invoices WHERE id = $1 RETURNING id', [id]);
 
             if (result.rows.length === 0) {
                 return res.status(404).json({ success: false, message: 'Invoice not found' });
