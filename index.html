@@ -1,0 +1,2047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interiors by Ode - Design Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        :root {
+            --jungle-green: #2E8B57;
+            --jungle-dark-green: #1E6B47;
+            --jungle-light-green: #4CAF80;
+            --interior-black: #1a1a1a;
+            --interior-dark-gray: #2d2d2d;
+            --interior-white: #FFFFFF;
+            --gray-50: #fafafa;
+            --gray-100: #f5f5f5;
+            --gray-200: #e5e5e5;
+            --gray-300: #d4d4d4;
+            --gray-400: #a3a3a3;
+            --gray-500: #737373;
+            --gray-600: #525252;
+            --gray-700: #404040;
+            --gray-800: #262626;
+            --gray-900: #171717;
+            --accent-gold: #FFD700;
+            --accent-coral: #FF6B6B;
+            --accent-blue: #4A90E2;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
+            --shadow-xl: 0 12px 36px rgba(0,0,0,0.25);
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-size-3xl: 1.875rem;
+            --font-size-4xl: 2.25rem;
+            /* RGB values for rgba() in animations */
+            --jungle-green-rgb: 46, 139, 87;
+            --accent-gold-rgb: 255, 215, 0;
+            --accent-blue-rgb: 74, 144, 226;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: var(--interior-black);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.5;
+            font-size: var(--font-size-sm);
+        }
+
+        /* Loading Animation */
+        .loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--jungle-green);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeOut 0.5s ease 4s forwards; /* Increased loading time to 4 seconds */
+        }
+
+        .loader-content {
+            text-align: center;
+            color: white;
+        }
+
+        .loader-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 20px;
+        }
+        
+        /* New Login Page Styles */
+        .login-container {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--interior-dark-gray) 0%, var(--interior-black) 100%);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            overflow: hidden; /* Hide overflowing shapes */
+        }
+        .login-box {
+            background: var(--interior-white);
+            padding: 40px;
+            border-radius: 22px;
+            box-shadow: var(--shadow-xl);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            animation: slideUp 0.6s ease-out;
+            z-index: 2; /* Ensure login box is above shapes */
+        }
+        .login-header h2 {
+            color: var(--jungle-green);
+            font-size: var(--font-size-3xl);
+            margin-bottom: 8px;
+        }
+        .login-header p {
+            color: var(--gray-500);
+            margin-bottom: 30px;
+        }
+        /* Animated Background Shapes for Login */
+        .background-shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            z-index: 1; /* Below the login box */
+        }
+
+        .background-shapes li {
+            position: absolute;
+            display: block;
+            list-style: none;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.15); /* Subtle white/light gray */
+            animation: animateShapes 25s linear infinite;
+            bottom: -150px; /* Start below the screen */
+            border-radius: 50%; /* Make them circles by default */
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
+            /* Add content for Font Awesome icons */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .background-shapes li:nth-child(1) {
+            left: 25%;
+            width: 80px;
+            height: 80px;
+            animation-delay: 0s;
+            content: '\f807'; /* fa-hard-hat */
+            background: rgba(var(--jungle-green-rgb), 0.2); /* Use a slightly transparent jungle green */
+        }
+
+        .background-shapes li:nth-child(2) {
+            left: 10%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 2s;
+            animation-duration: 12s;
+            content: '\f5d9'; /* fa-ruler-combined */
+            background: rgba(var(--accent-gold-rgb), 0.2);
+        }
+
+        .background-shapes li:nth-child(3) {
+            left: 70%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 4s;
+            content: '\f085'; /* fa-cogs */
+            background: rgba(var(--accent-blue-rgb), 0.2);
+        }
+
+        .background-shapes li:nth-child(4) {
+            left: 40%;
+            width: 60px;
+            height: 60px;
+            animation-delay: 0s;
+            animation-duration: 18s;
+            content: '\f7d9'; /* fa-paint-roller */
+            background: rgba(var(--jungle-green-rgb), 0.1);
+        }
+
+        .background-shapes li:nth-child(5) {
+            left: 65%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 0s;
+            content: '\f55b'; /* fa-pencil-ruler */
+            background: rgba(var(--accent-coral-rgb), 0.2);
+        }
+
+        .background-shapes li:nth-child(6) {
+            left: 75%;
+            width: 110px;
+            height: 110px;
+            animation-delay: 3s;
+            content: '\f7d9'; /* fa-paint-roller */
+            background: rgba(var(--jungle-green-rgb), 0.15);
+        }
+
+        .background-shapes li:nth-child(7) {
+            left: 35%;
+            width: 150px;
+            height: 150px;
+            animation-delay: 7s;
+            content: '\f807'; /* fa-hard-hat */
+            background: rgba(var(--accent-gold-rgb), 0.1);
+        }
+
+        .background-shapes li:nth-child(8) {
+            left: 50%;
+            width: 25px;
+            height: 25px;
+            animation-delay: 15s;
+            animation-duration: 45s;
+            content: '\f085'; /* fa-cogs */
+            background: rgba(var(--accent-blue-rgb), 0.25);
+        }
+
+        .background-shapes li:nth-child(9) {
+            left: 20%;
+            width: 15px;
+            height: 15px;
+            animation-delay: 2s;
+            animation-duration: 35s;
+            content: '\f55b'; /* fa-pencil-ruler */
+            background: rgba(var(--accent-coral-rgb), 0.15);
+        }
+
+        .background-shapes li:nth-child(10) {
+            left: 85%;
+            width: 150px;
+            height: 150px;
+            animation-delay: 11s;
+            content: '\f807'; /* fa-hard-hat */
+            background: rgba(var(--jungle-green-rgb), 0.1);
+        }
+
+        @keyframes animateShapes {
+            0% {
+                transform: translateY(0) rotate(0deg) scale(1);
+                opacity: 1;
+                border-radius: 20%;
+            }
+            20% {
+                transform: translateY(-20vh) rotate(45deg) scale(1.1);
+                opacity: 0.8;
+            }
+            40% {
+                transform: translateY(-40vh) rotate(90deg) scale(0.9);
+                opacity: 0.6;
+            }
+            60% {
+                transform: translateY(-60vh) rotate(135deg) scale(1.2);
+                opacity: 0.7;
+            }
+            80% {
+                transform: translateY(-80vh) rotate(180deg) scale(0.8);
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(225deg) scale(1.3);
+                opacity: 0;
+            }
+        }
+        .login-message { display: none; color: var(--accent-coral); margin-bottom: 15px; font-weight: 600; }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            opacity: 0;
+            animation: fadeIn 0.8s ease 2.5s forwards;
+        }
+
+        /* Sidebar with Animation */
+        .sidebar {
+            display: none; /* hidden per request */
+        }
+
+        .sidebar-header {
+            padding: 0 25px 25px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .sidebar-header h2 {
+            color: white;
+            font-size: var(--font-size-xl);
+            margin-bottom: 8px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .sidebar-header p {
+            color: rgba(255,255,255,0.9);
+            font-size: var(--font-size-xs);
+            opacity: 0;
+            animation: fadeIn 0.5s ease 3s forwards;
+        }
+
+        .nav-links {
+            padding: 0 20px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            margin-bottom: 6px;
+            border-radius: 12px;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transform: translateX(-20px);
+            opacity: 0;
+        }
+
+        .nav-item:nth-child(1) { animation: slideInRight 0.5s ease 3.1s forwards; }
+        .nav-item:nth-child(2) { animation: slideInRight 0.5s ease 3.2s forwards; }
+        .nav-item:nth-child(3) { animation: slideInRight 0.5s ease 3.3s forwards; }
+        .nav-item:nth-child(4) { animation: slideInRight 0.5s ease 3.4s forwards; }
+        .nav-item:nth-child(5) { animation: slideInRight 0.5s ease 3.5s forwards; }
+        .nav-item:nth-child(6) { animation: slideInRight 0.5s ease 3.6s forwards; }
+        .nav-item:nth-child(7) { animation: slideInRight 0.5s ease 3.7s forwards; }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: var(--accent-gold);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .nav-item:hover::before {
+            transform: scaleY(1);
+        }
+
+        .nav-item.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .nav-item.active::before {
+            transform: scaleY(1);
+        }
+
+        .nav-item i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+            font-size: var(--font-size-base);
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item:hover i {
+            transform: scale(1.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 0;
+            min-height: 100vh;
+            background: transparent;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--interior-white) 0%, #f8f9fa 100%);
+            padding: 20px 35px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--jungle-green);
+            transform: translateY(-20px);
+            opacity: 0;
+            animation: slideInDown 0.6s ease 3s forwards;
+        }
+
+        .header-left h1 {
+            color: var(--jungle-green);
+            font-size: var(--font-size-3xl);
+            margin-bottom: 8px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #2E8B57 0%, #1E6B47 40%, #FFD700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.08), -2px -2px 0 rgba(0,0,0,0.08);
+        }
+
+        .header-left p {
+            color: var(--gray-600);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Page Styles */
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Page Header */
+        .page-header {
+            margin-bottom: 35px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            padding: 35px;
+            background: linear-gradient(135deg, var(--jungle-green) 0%, var(--jungle-dark-green) 100%);
+            color: white;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(100px, -100px);
+        }
+
+        .page-header h2 {
+            font-size: var(--font-size-3xl);
+            font-weight: 800;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .page-header p {
+            font-size: var(--font-size-base);
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 22px;
+            margin-bottom: 45px;
+        }
+
+        .stat-card {
+            background: var(--interior-white);
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--jungle-green);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--jungle-green) 0%, var(--accent-gold) 100%);
+        }
+
+        .stat-card h3 {
+            color: var(--gray-600);
+            font-size: var(--font-size-xs);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: var(--font-size-3xl);
+            font-weight: 800;
+            color: var(--jungle-green);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            padding: 6px 14px;
+            background: rgba(46, 139, 87, 0.1);
+            border-radius: 50px;
+            display: inline-block;
+        }
+
+        .stat-trend.positive { color: var(--jungle-green); }
+        .stat-trend.negative { color: var(--accent-coral); }
+
+        /* Calculator Styles */
+        .calculator-container {
+            background: var(--interior-white);
+            border-radius: 22px;
+            padding: 35px;
+            box-shadow: var(--shadow-xl);
+            margin-bottom: 35px;
+            border: 2px solid rgba(46, 139, 87, 0.1);
+        }
+
+        .calculator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 18px;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        .calculator-header h3 {
+            color: var(--jungle-green);
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+        }
+
+        .calculator-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .items-table th {
+            background: linear-gradient(135deg, var(--jungle-green) 0%, var(--jungle-dark-green) 100%);
+            padding: 16px;
+            text-align: left;
+            color: white;
+            font-weight: 600;
+            font-size: var(--font-size-base);
+        }
+
+        .items-table th:first-child { border-top-left-radius: 12px; }
+        .items-table th:last-child { border-top-right-radius: 12px; }
+
+        .items-table td {
+            padding: 16px;
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--interior-white);
+        }
+
+        .items-table tr:last-child td:first-child { border-bottom-left-radius: 12px; }
+        .items-table tr:last-child td:last-child { border-bottom-right-radius: 12px; }
+
+        .items-table input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: var(--font-size-sm);
+            transition: all 0.3s ease;
+            background: white;
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: 600;
+        }
+
+        .items-table input:focus {
+            outline: none;
+            border-color: var(--jungle-green);
+            box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Fix for CSS warning - added standard appearance property */
+        .items-table input::-webkit-outer-spin-button,
+        .items-table input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 0;
+        }
+
+        .items-table input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .btn {
+            padding: 12px 22px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: var(--font-size-sm);
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--jungle-green) 0%, var(--jungle-dark-green) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(46, 139, 87, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(46, 139, 87, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--gray-700) 0%, var(--interior-black) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-coral) 0%, #ff4757 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(255,107,107,0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255,107,107,0.4);
+        }
+
+        .calculator-summary {
+            background: linear-gradient(135deg, var(--gray-50) 0%, #f0f0f0 100%);
+            border-radius: 18px;
+            padding: 30px;
+            margin-top: 35px;
+            border: 2px solid rgba(46, 139, 87, 0.2);
+            box-shadow: var(--shadow-md);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            font-size: var(--font-size-base);
+            color: var(--gray-700);
+        }
+
+        .summary-row.total {
+            border-top: 3px solid var(--jungle-green);
+            font-size: var(--font-size-xl);
+            font-weight: 800;
+            color: var(--jungle-green);
+            padding-top: 20px;
+            margin-top: 12px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 550px;
+            margin: 40px auto;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-30px);
+            animation: slideUp 0.4s ease;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--jungle-green) 0%, var(--jungle-dark-green) 100%);
+            padding: 25px;
+            color: white;
+        }
+
+        .modal-header h3 {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+        }
+
+        .modal-body {
+            padding: 35px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--gray-700);
+            font-weight: 600;
+            font-size: var(--font-size-base);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: var(--font-size-sm);
+            transition: all 0.3s ease;
+            background: var(--gray-50);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--jungle-green);
+            box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.1);
+            background: white;
+        }
+
+        .modal-footer {
+            padding: 25px;
+            background: var(--gray-50);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 2px solid var(--gray-200);
+        }
+
+        /* PDF Preview */
+        .pdf-container {
+            background: white;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: var(--shadow-xl);
+            margin-bottom: 35px;
+            overflow-x: auto; /* allow horizontal scroll on small screens */
+            max-height: 75vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-toolbar {
+            background: var(--gray-800);
+            padding: 18px 25px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            border-bottom: 2px solid var(--jungle-green);
+            position: relative;
+            scroll-behavior: smooth;
+        }
+
+        .toolbar-scroll-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.9);
+            border: 1px solid var(--gray-200);
+            color: var(--jungle-green);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            z-index: 2;
+        }
+
+        .toolbar-scroll-btn.left { left: 8px; }
+        .toolbar-scroll-btn.right { right: 8px; }
+        .pdf-content {
+            padding: 35px;
+            min-height: 400px;
+            max-height: 100%;
+            background: white;
+            font-family: 'Times New Roman', Times, serif;
+            overflow-x: auto; /* keep wide content readable on mobile */
+            overflow-y: auto;
+        }
+
+        .pdf-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 25px;
+            border-bottom: 3px solid var(--jungle-green);
+        }
+
+        .pdf-header h1 {
+            color: var(--jungle-green);
+            font-size: var(--font-size-4xl);
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .pdf-header .subtitle {
+            color: var(--gray-600);
+            font-size: var(--font-size-base);
+            font-style: italic;
+        }
+
+        .client-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .info-box {
+            padding: 22px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            border-left: 5px solid var(--jungle-green);
+        }
+
+        .info-box h3 {
+            color: var(--jungle-green);
+            margin-bottom: 12px;
+            font-size: var(--font-size-lg);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 250px;
+            }
+            .main-content {
+                margin-left: 250px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .mobile-menu-btn {
+                display: block;
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%; /* Ensure it takes full width */
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+            .page-header {
+                padding: 25px;
+                text-align: center;
+            }
+            .page-header h2 {
+                font-size: var(--font-size-2xl);
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+            .stat-card {
+                padding: 20px;
+            }
+            .stat-value {
+                font-size: var(--font-size-2xl);
+            }
+            .client-info {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+            .calculator-container {
+                padding: 20px;
+            }
+            .calculator-actions {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .header {
+                padding: 18px 20px;
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+            .header {
+                position: relative;
+            }
+            .pdf-content {
+                padding: 25px;
+                min-height: 500px;
+                overflow-x: auto;
+            }
+            .pdf-toolbar {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .pdf-toolbar .btn {
+                flex: 1 1 48%;
+                min-width: 140px;
+            }
+        }
+
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 101;
+            background: var(--jungle-green);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            font-size: var(--font-size-lg);
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-btn:hover {
+            background: var(--jungle-dark-green);
+            transform: scale(1.1);
+        }
+
+        /* Mobile dropdown navigation */
+        .mobile-nav-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 2px solid var(--jungle-green);
+            background: white;
+            color: var(--jungle-green);
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .mobile-nav-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            padding: 8px;
+            z-index: 60;
+        }
+
+        .mobile-nav-menu.open {
+            display: block;
+        }
+
+        .mobile-nav-menu .nav-item {
+            color: var(--gray-800);
+            display: block;
+            margin: 4px 0;
+            transform: none;
+            opacity: 1;
+            animation: none;
+            background: var(--gray-50);
+        }
+        .mobile-nav-menu .nav-item.active {
+            background: rgba(46, 139, 87, 0.15);
+            color: var(--jungle-dark-green);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideInDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: var(--jungle-green);
+            color: white;
+            padding: 18px 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-xl);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            max-width: 350px;
+            font-size: var(--font-size-sm);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        /* Print Styles */
+        @media print {
+            .sidebar, .header, .pdf-toolbar, .btn, .modal {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 0;
+            }
+            .pdf-container {
+                box-shadow: none;
+                margin: 0;
+            }
+            .pdf-content {
+                padding: 0;
+                min-height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loader">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <h2>Interiors by Ode</h2>
+            <p>Loading Design Management System...</p>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Interiors by Ode</h2>
+                <p>Premium Design Solutions</p>
+            </div>
+            <nav class="nav-links">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a>
+                <a href="#" class="nav-item" data-page="calculator">
+                    <i class="fas fa-calculator"></i> Calculator
+                </a>
+                <a href="#" class="nav-item" data-page="quotations">
+                    <i class="fas fa-file-contract"></i> Quotations
+                </a>
+                <a href="#" class="nav-item" data-page="invoices">
+                    <i class="fas fa-file-invoice"></i> Invoices
+                </a>
+                <a href="#" class="nav-item" data-page="tasks">
+                    <i class="fas fa-tasks"></i> Task Management
+                </a>
+                <a href="#" class="nav-item" data-page="team">
+                    <i class="fas fa-users"></i> Team Collaboration
+                </a>
+                <a href="#" class="nav-item" data-page="milestones">
+                    <i class="fas fa-flag-checkered"></i> Milestones
+                </a>
+                <a href="#" class="nav-item" data-page="clients">
+                    <i class="fas fa-address-book"></i> Clients
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1>Interiors by Ode</h1>
+                    <p>Professional Interior Design Management System</p>
+                </div>
+                <div class="mobile-nav-wrapper">
+                    <button class="mobile-nav-toggle" id="mobileNavToggle">
+                        <i class="fas fa-bars"></i> Menu
+                    </button>
+                    <div class="mobile-nav-menu" id="mobileNavMenu">
+                        <a href="#dashboard" class="nav-item" data-page="dashboard">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                        <a href="#calculator" class="nav-item" data-page="calculator">
+                            <i class="fas fa-calculator"></i> Calculator
+                        </a>
+                        <a href="#quotations" class="nav-item" data-page="quotations">
+                            <i class="fas fa-file-contract"></i> Quotations
+                        </a>
+                        <a href="#invoices" class="nav-item" data-page="invoices">
+                            <i class="fas fa-file-invoice"></i> Invoices
+                        </a>
+                        <a href="#tasks" class="nav-item" data-page="tasks">
+                            <i class="fas fa-tasks"></i> Task Management
+                        </a>
+                        <a href="#team" class="nav-item" data-page="team">
+                            <i class="fas fa-users"></i> Team Collaboration
+                        </a>
+                        <a href="#milestones" class="nav-item" data-page="milestones">
+                            <i class="fas fa-flag-checkered"></i> Milestones
+                        </a>
+                        <a href="#clients" class="nav-item" data-page="clients">
+                            <i class="fas fa-address-book"></i> Clients
+                        </a>
+                        <a href="#settings" class="nav-item" data-page="settings">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                        <a href="#" class="nav-item" id="logoutBtnMobile">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Pages -->
+            <div class="content" id="content">
+                <!-- Dashboard Page -->
+                <section id="dashboard-page" class="page active">
+                    <div class="page-header">
+                        <h2>Dashboard Overview</h2>
+                        <p>Welcome to your design management workspace</p>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Active Projects</h3>
+                            <div class="stat-value" id="activeProjects">0</div>
+                            <div class="stat-trend positive">
+                                <i class="fas fa-arrow-up"></i> <span id="projectsTrend">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Monthly Revenue</h3>
+                            <div class="stat-value" id="monthlyRevenue">0</div>
+                            <div class="stat-trend positive">
+                                <i class="fas fa-arrow-up"></i> <span id="revenueTrend">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Pending Tasks</h3>
+                            <div class="stat-value" id="pendingTasks">0</div>
+                            <div class="stat-trend negative">
+                                <i class="fas fa-arrow-down"></i> <span id="tasksTrend">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Client Satisfaction</h3>
+                            <div class="stat-value" id="clientSatisfaction">0%</div>
+                            <div class="stat-trend positive">
+                                <i class="fas fa-star"></i> <span id="satisfactionTrend">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Calculator Page -->
+                <section id="calculator-page" class="page">
+                    <div class="page-header">
+                        <h2>Quotation Calculator</h2>
+                        <p>Create detailed project quotations with automatic calculations</p>
+                    </div>
+                    
+                    <div class="calculator-container">
+                        <div class="calculator-header">
+                            <h3>Create New Quotation</h3>
+                            <div class="calculator-actions">
+                                <button class="btn btn-secondary" id="clearAllBtn">
+                                    <i class="fas fa-trash"></i> Clear All
+                                </button>
+                                <button class="btn btn-primary" id="generateQuoteBtn">
+                                    <i class="fas fa-file-invoice"></i> Generate Quotation
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%;">Description</th>
+                                    <th style="width: 15%;">Units</th>
+                                    <th style="width: 15%;">Quantity</th>
+                                    <th style="width: 20%;">Unit Price (KSh)</th>
+                                    <th style="width: 15%;">Total (KSh)</th>
+                                    <th style="width: 10%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTableBody">
+                                <!-- Items will be added dynamically -->
+                            </tbody>
+                        </table>
+                        
+                        <div style="display: flex; gap: 12px; margin-bottom: 25px;">
+                            <button class="btn btn-primary" id="addItemBtn">
+                                <i class="fas fa-plus"></i> Add Item
+                            </button>
+                            <button class="btn btn-secondary" id="saveDraftQuotationBtn">
+                                <i class="fas fa-save"></i> Save Draft Quotation
+                            </button>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 25px; margin-bottom: 25px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: #666; font-weight: 600;">Tax Rate (%)</label>
+                                <input type="number" id="taxRate" value="16" min="0" max="100" step="0.1" 
+                                       style="width: 100%; padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.875rem;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: #666; font-weight: 600;">Discount (%)</label>
+                                <input type="number" id="discount" value="0" min="0" max="100" step="0.1"
+                                       style="width: 100%; padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.875rem;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: #666; font-weight: 600;">Assign to Client *</label>
+                                <select id="quotationClientSelect" class="form-control">
+                                     <!-- Clients will be populated here -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="calculator-summary">
+                            <h4 style="margin-bottom: 18px; color: #333; font-size: 1.125rem;">Quotation Summary</h4>
+                            <div class="summary-row">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">KSh 0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Tax (<span id="taxRateDisplay">16</span>%):</span>
+                                <span id="taxAmount">KSh 0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Discount (<span id="discountDisplay">0</span>%):</span>
+                                <span id="discountAmount" style="color: #ff4757;">KSh 0</span>
+                            </div>
+                            <div class="summary-row total">
+                                <span>GRAND TOTAL:</span>
+                                <span id="totalAmount">KSh 0</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PDF Generator Pages -->
+                <section id="quotations-page" class="page">
+                    <div class="page-header">
+                        <h2>Quotation Generator</h2>
+                        <p>Manage all saved quotations. Click a quotation to view, edit, or download.</p>
+                    </div>
+                    
+                    <!-- Quotations List View -->
+                    <div id="quotationsListContainer" class="calculator-container fade-in-up">
+                        <h3 style="color: var(--jungle-green); font-size: var(--font-size-xl); margin-bottom: 20px;">Saved Quotations</h3>
+                        <div style="margin-bottom: 20px; max-width: 400px;">
+                             <div style="position: relative;">
+                                <input type="search" id="quotationSearchInput" class="form-control" placeholder="Search by number or client...">
+                            </div>
+                        </div>
+                        <div class="items-table-wrapper" style="overflow-x: auto;">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Quotation #</th>
+                                        <th>Client</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="quotationsTableBody">
+                                    <!-- Quotations will be listed here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Quotation Detail View (Initially Hidden) -->
+                    <div id="quotationDetailContainer" style="display: none;">
+                        <div class="pdf-container">
+                            <div class="pdf-toolbar">
+                                <button class="btn btn-secondary" id="backToQuotesListBtn"><i class="fas fa-arrow-left"></i> Back to List</button>
+                                <button class="btn btn-primary" id="downloadQuotationBtn"><i class="fas fa-download"></i> Download PDF</button>
+                                <button class="btn btn-secondary" id="printQuotationBtn"><i class="fas fa-print"></i> Print Quotation</button>
+                            </div>
+                        </div>
+                        <div class="pdf-content" id="quotationContent">
+                            <!-- Quotation content will be generated here -->
+                        </div>
+                    </div>
+                </section>
+
+                <section id="invoices-page" class="page">
+                    <div class="page-header">
+                        <h2>Invoice Management</h2>
+                        <p>Manage all generated invoices. Click an invoice to view, edit, or download.</p>
+                    </div>
+                    
+                    <!-- Invoices List View -->
+                    <div id="invoicesListContainer" class="calculator-container fade-in-up">
+                        <h3 style="color: var(--jungle-green); font-size: var(--font-size-xl); margin-bottom: 20px;">Saved Invoices</h3>
+                        <div style="margin-bottom: 20px; max-width: 400px;">
+                             <div style="position: relative;">
+                                <input type="search" id="invoiceSearchInput" class="form-control" placeholder="Search by number or client...">
+                            </div>
+                        </div>
+                        <div class="items-table-wrapper" style="overflow-x: auto;">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Client</th>
+                                        <th>Issue Date</th>
+                                        <th>Due Date</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoicesTableBody">
+                                    <!-- Invoices will be listed here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Detail View (Initially Hidden) -->
+                    <div id="invoiceDetailContainer" style="display: none;">
+                        <div class="pdf-toolbar">
+                            <button class="btn btn-secondary" id="backToInvoicesListBtn"><i class="fas fa-arrow-left"></i> Back to List</button>
+                            <button class="btn btn-primary" id="downloadInvoiceBtn"><i class="fas fa-download"></i> Download PDF</button>
+                            <button class="btn btn-primary" id="markAsPaidBtn" style="background: var(--jungle-green);"><i class="fas fa-check-circle"></i> Mark as Paid</button>
+                            <button class="btn btn-danger" id="markAsOverdueBtn"><i class="fas fa-exclamation-triangle"></i> Mark as Overdue</button>
+                            <button class="btn btn-secondary" id="printInvoiceBtn"><i class="fas fa-print"></i> Print Invoice</button>
+                        </div>
+                        <div class="pdf-content" id="invoiceContent">
+                            <!-- Invoice content will be generated here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Other Pages -->
+                <section id="tasks-page" class="page">
+                    <div class="page-header">
+                        <h2>Task Management</h2>
+                        <p>Manage your design projects workflow</p>
+                    </div>
+                    
+                    <div class="calculator-container fade-in-up">
+                        <h3 style="color: var(--jungle-green); margin-bottom: 16px; font-size: var(--font-size-xl);">Project Workflow</h3>
+                        
+                        <!-- Project Selection -->
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; color: var(--gray-700); font-weight: 600;">Select Project</label>
+                            <select id="projectSelect" style="width: 100%; padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: 8px; font-size: var(--font-size-sm);">
+                                <option value="">-- Select a Project --</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Current Status Display -->
+                        <div id="currentStatusDisplay" style="display: none; margin-bottom: 25px; padding: 15px; background: var(--gray-50); border-radius: 10px; border-left: 4px solid var(--jungle-green);">
+                            <h4 style="color: var(--jungle-green); margin-bottom: 10px;">Current Status: <span id="projectStatusText"></span></h4>
+                            <p id="projectDescriptionText" style="color: var(--gray-600);"></p>
+                        </div>
+                        
+                        <!-- Workflow Steps -->
+                        <div id="workflowSteps" style="display: none;">
+                            <!-- Step 1: Site Visit -->
+                            <div class="workflow-step" data-step="site_visit">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h4 style="color: var(--gray-800);">
+                                        <i class="fas fa-map-marker-alt" style="color: var(--accent-blue); margin-right: 10px;"></i>
+                                        Site Visit Planning
+                                    </h4>
+                                    <span class="step-badge pending" id="siteVisitBadge">Pending</span>
+                                </div>
+                                <div id="siteVisitForm" style="margin-bottom: 20px;">
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; margin-bottom: 6px; color: var(--gray-600);">Visit Date</label>
+                                        <input type="date" id="visitDate" style="width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;">
+                                    </div>
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; margin-bottom: 6px; color: var(--gray-600);">Notes</label>
+                                        <textarea id="visitNotes" rows="3" style="width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;"></textarea>
+                                    </div>
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; margin-bottom: 6px; color: var(--gray-600);">Measurements</label>
+                                        <textarea id="visitMeasurements" rows="2" style="width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;" placeholder="Room dimensions, special requirements..."></textarea>
+                                    </div>
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; margin-bottom: 6px; color: var(--gray-600);">Site Photos</label>
+                                        <input type="file" id="sitePhotos" multiple accept="image/*" class="form-control">
+                                    </div>
+                                    <button class="btn btn-primary" id="scheduleVisitBtn" style="width: 100%;">
+                                        <i class="fas fa-calendar-check"></i> Schedule Site Visit
+                                    </button>
+                                </div>
+                                <div id="siteVisitCompleted" style="display: none; margin-bottom: 20px;">
+                                    <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                                        <p style="color: #2e7d32; margin: 0;"><i class="fas fa-check-circle"></i> Site visit scheduled</p>
+                                    </div>
+                                    <div id="siteVisitPhotosContainer" style="margin-top: 20px; display: none;">
+                                        <h5 style="color: var(--gray-700); margin-bottom: 10px; font-size: var(--font-size-base);">Uploaded Photos</h5>
+                                        <div id="siteVisitPhotosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; border: 1px solid var(--gray-200); padding: 10px; border-radius: 8px;">
+                                            <!-- Photos will be rendered here -->
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-secondary" id="completeSiteVisitBtn" style="margin-top: 10px; width: 100%;">
+                                        <i class="fas fa-check"></i> Mark Site Visit as Completed
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <hr style="margin: 25px 0; border-color: var(--gray-200);">
+                            
+                            <!-- Step 2: Client Approval -->
+                            <div class="workflow-step" data-step="client_approval">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h4 style="color: var(--gray-800);">
+                                        <i class="fas fa-thumbs-up" style="color: var(--jungle-green); margin-right: 10px;"></i>
+                                        Client Approval
+                                    </h4>
+                                    <span class="step-badge pending" id="approvalBadge">Pending</span>
+                                </div>
+                                <div id="approvalForm" style="display: none; margin-bottom: 20px;">
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; margin-bottom: 6px; color: var(--gray-600);">Approval Notes</label>
+                                        <textarea id="approvalNotes" rows="3" style="width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;" placeholder="Client feedback, approved designs, etc..."></textarea>
+                                    </div>
+                                    <button class="btn btn-primary" id="recordApprovalBtn" style="width: 100%;">
+                                        <i class="fas fa-check-double"></i> Record Client Approval
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <hr style="margin: 25px 0; border-color: var(--gray-200);">
+                            
+                            <!-- Step 3: Work in Progress -->
+                            <div class="workflow-step" data-step="work_progress">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h4 style="color: var(--gray-800);">
+                                        <i class="fas fa-tools" style="color: var(--accent-gold); margin-right: 10px;"></i>
+                                        Work in Progress
+                                    </h4>
+                                    <span class="step-badge pending" id="workBadge">Pending</span>
+                                </div>
+                                <div id="startWorkForm" style="display: none; margin-bottom: 20px;">
+                                    <button class="btn btn-primary" id="startWorkBtn" style="width: 100%;">
+                                        <i class="fas fa-play"></i> Start Work
+                                    </button>
+                                </div>
+                                <div id="progressUpdateForm" style="display: none; margin-bottom: 20px;">
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; margin-bottom: 6px; color: var(--gray-600);">Progress Percentage</label>
+                                        <input type="range" id="progressSlider" min="0" max="100" step="10" value="0" style="width: 100%; margin-bottom: 10px;">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                            <span id="progressValue" style="font-weight: bold; color: var(--jungle-green);">0%</span>
+                                            <span style="color: var(--gray-500);">Complete</span>
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; margin-bottom: 6px; color: var(--gray-600);">Update Details</label>
+                                        <textarea id="progressDetails" rows="3" style="width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;" placeholder="What work has been done?"></textarea>
+                                    </div>
+                                    <button class="btn btn-secondary" id="updateProgressBtn" style="width: 100%; margin-bottom: 10px;">
+                                        <i class="fas fa-sync-alt"></i> Update Progress
+                                    </button>
+                                    <button class="btn btn-primary" id="completeWorkBtn" style="width: 100%;">
+                                        <i class="fas fa-flag-checkered"></i> Mark Work as Completed
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <hr style="margin: 25px 0; border-color: var(--gray-200);">
+                            
+                            <!-- Step 4: Submission -->
+                            <div class="workflow-step" data-step="submission">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h4 style="color: var(--gray-800);">
+                                        <i class="fas fa-paper-plane" style="color: var(--accent-coral); margin-right: 10px;"></i>
+                                        Final Submission
+                                    </h4>
+                                    <span class="step-badge pending" id="submissionBadge">Pending</span>
+                                </div>
+                                <div id="submissionForm" style="display: none; margin-bottom: 20px;">
+                                    <button class="btn btn-primary" id="submitProjectBtn" style="width: 100%;">
+                                        <i class="fas fa-check-circle"></i> Submit Project
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Work Progress Timeline -->
+                        <div id="progressTimeline" style="display: none; margin-top: 30px;">
+                            <h4 style="color: var(--jungle-green); margin-bottom: 16px;">Progress Timeline</h4>
+                            <div id="timelineContent" style="display: grid; gap: 12px;">
+                                <!-- Progress entries will appear here -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="projects-page" class="page">
+                    <div class="page-header">
+                        <h2>All Projects</h2>
+                        <p>View, manage, and track all your ongoing and completed projects.</p>
+                    </div>
+                    <div class="calculator-container fade-in-up">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                            <h3 style="color: var(--jungle-green); font-size: var(--font-size-xl); margin-bottom: 0;">Projects List</h3>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button class="btn btn-primary" id="newProjectBtn"><i class="fas fa-plus"></i> New Project</button>
+                            </div>
+                            <div style="flex-grow: 1; max-width: 400px;">
+                                <input type="search" id="projectSearchInput" class="form-control" placeholder="Search by project or client...">
+                            </div>
+                        </div>
+                        <div class="items-table-wrapper" style="overflow-x: auto;">
+                            <table class="items-table">
+                                <thead>
+                                    <tr id="projectsTableHeader">
+                                        <th class="sortable" data-sort="name">Project Name<i class="fas fa-sort sort-icon"></i></th>
+                                        <th class="sortable" data-sort="client_name">Client<i class="fas fa-sort sort-icon"></i></th>
+                                        <th class="sortable" data-sort="status">Status<i class="fas fa-sort sort-icon"></i></th>
+                                        <th class="sortable" data-sort="budget">Budget<i class="fas fa-sort sort-icon"></i></th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="projectsTableBody">
+                                    <!-- Project rows will be inserted here by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="team-page" class="page">
+                    <div class="page-header">
+                        <h2>Note Taking</h2>
+                        <p>Capture and share quick notes with your team.</p>
+                    </div>
+                    <div class="calculator-container fade-in-up">
+                        <h3 style="color: var(--jungle-green); margin-bottom: 16px; font-size: var(--font-size-xl);">Shared Notes</h3>
+                        <p style="color: var(--gray-600); margin-bottom: 12px;">Share quick notes or comments with the team.</p>
+                        <textarea id="teamNoteInput" rows="4" style="width: 100%; padding: 12px 14px; border: 1px solid var(--gray-200); border-radius: 10px; margin-bottom: 12px;"></textarea>
+                        <button class="btn btn-primary" id="addTeamNoteBtn" style="margin-bottom: 16px;">
+                            <i class="fas fa-plus"></i> Add Note
+                        </button>
+                        <div id="teamNotesList" style="display: grid; gap: 10px;">
+                            <!-- Notes will appear here -->
+                        </div>
+                    </div>
+                </section>
+
+                <section id="milestones-page" class="page">
+                    <div class="page-header">
+                        <h2>Project Milestones</h2>
+                        <p>Select a project to view and track its progress through key phases.</p>
+                    </div>
+                    <div class="calculator-container fade-in-up">
+                        <!-- Project Selection -->
+                        <div style="margin-bottom: 30px;">
+                            <label style="display: block; margin-bottom: 8px; color: var(--gray-700); font-weight: 600;">Select Project to View Milestones</label>
+                            <select id="milestoneProjectSelect" class="form-control">
+                                <option value="">-- Select a Project --</option>
+                            </select>
+                        </div>
+
+                        <div id="milestonesDisplay" style="display: none;">
+                            <!-- Milestone cards will be rendered here -->
+                        </div>
+                    </div>
+                </section>
+
+                <section id="clients-page" class="page">
+                    <div class="page-header">
+                        <h2>Client Management</h2>
+                        <p>View, add, and manage all your client records.</p>
+                    </div>
+                    <div class="calculator-container fade-in-up">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                            <h3 style="color: var(--jungle-green); font-size: var(--font-size-xl); margin-bottom: 0;">All Clients</h3>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <div style="flex-grow: 1; max-width: 300px;">
+                                    <input type="search" id="clientSearchInput" class="form-control" placeholder="Search clients...">
+                                </div>
+                                <button class="btn btn-primary" id="addNewClientBtn"><i class="fas fa-user-plus"></i> Add New Client</button>
+                            </div>
+                        </div>
+                        <div class="items-table-wrapper" style="overflow-x: auto;">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Company</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientsTableBody">
+                                    <!-- Client rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="settings-page" class="page">
+                    <div class="page-header">
+                        <h2>System Settings</h2>
+                        <p>Manage application-wide settings, company details, and payment information.</p>
+                    </div>
+                    <div class="calculator-container fade-in-up">
+                        <h3 style="color: var(--jungle-green); margin-bottom: 20px; font-size: var(--font-size-xl);">Company Information</h3>
+                        <div class="form-group">
+                            <label>Company Name</label>
+                            <input type="text" class="form-control" id="settingCompanyName">
+                        </div>
+                        <div class="form-group">
+                            <label>Company Address</label>
+                            <textarea class="form-control" id="settingCompanyAddress" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Company Phone</label>
+                            <input type="tel" class="form-control" id="settingCompanyPhone">
+                        </div>
+                        <div class="form-group">
+                            <label>Company Email</label>
+                            <input type="email" class="form-control" id="settingCompanyEmail">
+                        </div>
+
+                        <h3 style="color: var(--jungle-green); margin-top: 30px; margin-bottom: 20px; font-size: var(--font-size-xl);">Financial Settings</h3>
+                        <div class="form-group">
+                            <label>Default Tax Rate (%)</label>
+                            <input type="number" class="form-control" id="settingDefaultTaxRate" min="0" step="0.1">
+                        </div>
+
+                        <h3 style="color: var(--jungle-green); margin-top: 30px; margin-bottom: 20px; font-size: var(--font-size-xl);">Payment Information</h3>
+                        <div class="form-group">
+                            <label>Bank Name</label>
+                            <input type="text" class="form-control" id="settingBankName">
+                        </div>
+                        <div class="form-group">
+                            <label>Account Name</label>
+                            <input type="text" class="form-control" id="settingAccountName">
+                        </div>
+                        <div class="form-group">
+                            <label>Account Number</label>
+                            <input type="text" class="form-control" id="settingAccountNumber">
+                        </div>
+                        <div class="form-group">
+                            <label>M-Pesa Paybill</label>
+                            <input type="text" class="form-control" id="settingMpesaPaybill">
+                        </div>
+                        <div class="form-group">
+                            <label>M-Pesa Account Reference</label>
+                            <input type="text" class="form-control" id="settingMpesaAccountRef">
+                        </div>
+
+                        <div style="margin-top: 30px; text-align: right;">
+                            <button class="btn btn-primary" id="saveSettingsBtn"><i class="fas fa-save"></i> Save Settings</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- New Project Modal -->
+                <div class="modal" id="newProjectModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Create New Project</h3>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Project Name *</label>
+                                <input type="text" class="form-control" id="newProjectName" placeholder="e.g., Westlands Apartment Renovation">
+                            </div>
+                            <div class="form-group">
+                                <label>Assign to Client *</label>
+                                <select id="newProjectClientSelect" class="form-control">
+                                    <option value="">-- Select a Client --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-control" id="newProjectDescription" rows="3" placeholder="Describe the project scope..."></textarea>
+                            </div>
+                             <div class="form-group">
+                                <label>Budget</label>
+                                <input type="number" class="form-control" id="newProjectBudget" placeholder="0.00" step="100">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" id="cancelNewProjectBtn">Cancel</button>
+                            <button class="btn btn-primary" id="saveNewProjectBtn">Create Project</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Project Modal -->
+                <div class="modal" id="editProjectModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Edit Project</h3>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="editProjectId">
+                            <div class="form-group">
+                                <label>Project Name *</label>
+                                <input type="text" class="form-control" id="editProjectName" placeholder="Project Name">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-control" id="editProjectDescription" rows="3" placeholder="Describe the project..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Internal Notes</label>
+                                <textarea class="form-control" id="editProjectNotes" rows="3" placeholder="Add internal notes for the project..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Budget</label>
+                                <input type="number" class="form-control" id="editProjectBudget" placeholder="0.00" step="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select class="form-control" id="editProjectStatus">
+                                    <option value="planning">Planning</option>
+                                    <option value="site_visit_scheduled">Site Visit Scheduled</option>
+                                    <option value="site_visit_completed">Site Visit Completed</option>
+                                    <option value="client_approved">Client Approved</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="submitted">Submitted</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" id="cancelEditProjectBtn">Cancel</button>
+                            <button class="btn btn-primary" id="saveProjectChangesBtn">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Client Modal -->
+                <div class="modal" id="editClientModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Edit Client</h3>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="editClientId">
+                            <div class="form-group">
+                                <label>Client Name *</label>
+                                <input type="text" class="form-control" id="editClientName" placeholder="John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label>Company Name</label>
+                                <input type="text" class="form-control" id="editClientCompany" placeholder="ABC Corporation">
+                            </div>
+                            <div class="form-group">
+                                <label>Email Address *</label>
+                                <input type="email" class="form-control" id="editClientEmail" placeholder="client@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number *</label>
+                                <input type="tel" class="form-control" id="editClientPhone" placeholder="+254 712 345 678">
+                            </div>
+                            <div class="form-group">
+                                <label>Address *</label>
+                                <textarea class="form-control" id="editClientAddress" rows="3" placeholder="123 Main Street, Nairobi"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" id="cancelEditClientBtn">Cancel</button>
+                            <button class="btn btn-primary" id="saveClientChangesBtn">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client Details Modal -->
+                <div class="modal" id="clientModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Client Details</h3>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Client Name *</label>
+                                <input type="text" class="form-control" id="clientName" placeholder="John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label>Company Name</label>
+                                <input type="text" class="form-control" id="companyName" placeholder="ABC Corporation">
+                            </div>
+                            <div class="form-group">
+                                <label>Email Address *</label>
+                                <input type="email" class="form-control" id="clientEmail" placeholder="client@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number *</label>
+                                <input type="tel" class="form-control" id="clientPhone" placeholder="+254 712 345 678">
+                            </div>
+                            <div class="form-group">
+                                <label>Address *</label>
+                                <textarea class="form-control" id="clientAddress" rows="3" placeholder="123 Main Street, Nairobi"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Project Description</label>
+                                <textarea class="form-control" id="projectDescription" rows="3" placeholder="Describe the project..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Bank Name</label>
+                                <input type="text" class="form-control" id="bankName" placeholder="Equity Bank Kenya">
+                            </div>
+                            <div class="form-group">
+                                <label>Account Name</label>
+                                <input type="text" class="form-control" id="accountName" placeholder="Interiors by Ode">
+                            </div>
+                            <div class="form-group">
+                                <label>Account Number</label>
+                                <input type="text" class="form-control" id="accountNumber" placeholder="1234567890">
+                            </div>
+                            <div class="form-group">
+                                <label>M-Pesa Paybill</label>
+                                <input type="text" class="form-control" id="paybill" placeholder="123456">
+                            </div>
+                            <div class="form-group">
+                                <label>M-Pesa Account Reference</label>
+                                <input type="text" class="form-control" id="paybillAccount" placeholder="Use invoice number or name">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+                            <button class="btn btn-primary" id="saveClientBtn">Save & Generate</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Login Screen -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <div class="login-header">
+                <h2>Interiors by Ode</h2>
+                <p>Design Management System</p>
+            </div>
+            <div class="login-body">
+                <div id="loginMessage" class="login-message"></div>
+                <!-- In the login form, replace the existing form-group -->
+                <div class="form-group">
+                    <input type="text" id="email" class="form-control" placeholder="Email" value="admin@interiorsbyode.com">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" class="form-control" placeholder="Password" value="ode">
+                </div>
+                <button class="btn btn-primary" id="loginBtn" style="width: 100%; justify-content: center;">
+                    <span class="login-btn-text">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </span>
+                    <span class="loader-spinner" style="display: none; width: 20px; height: 20px; border-width: 2px; margin: 0;"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <div id="notificationMessage">Operation completed successfully!</div>
+    </div>
+
+    <script src="./app.js"></script>
+</body>
+</html>
