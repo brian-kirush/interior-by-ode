@@ -1,5 +1,7 @@
-// Application State
-const API_BASE_URL = 'http://localhost/interior%20by%20ode/backend/api';
+// Application State - UPDATED FOR RENDER
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api'
+    : '/api';  // Will use relative path on Render
 
 const state = {
     items: [],
@@ -33,7 +35,7 @@ const state = {
     currentUser: null,
     csrfToken: null
 };
-
+// ... rest of your existing app.js code ..
 // DOM Elements
 const loader = document.querySelector('.loader');
 const sidebar = document.getElementById('sidebar');
@@ -49,6 +51,7 @@ let appSettings = {};
 
 // API Helper
 async function apiCall(endpoint, options = {}) {
+    const method = options.method || 'GET';
     const defaultOptions = {
         credentials: 'include',
         headers: {
@@ -56,6 +59,11 @@ async function apiCall(endpoint, options = {}) {
             ...options.headers
         }
     };
+
+    // Add CSRF token to headers for state-changing requests
+    if (state.csrfToken && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+        defaultOptions.headers['csrf-token'] = state.csrfToken;
+    }
     
     if (options.body && typeof options.body !== 'string') {
         options.body = JSON.stringify(options.body);
@@ -524,7 +532,7 @@ function updateCalculatorSummary() {
 // Load dashboard data
 async function loadDashboardData() {
     try {
-        const result = await apiCall('dashboard.php');
+        const result = await apiCall('dashboard');
         
         if (result.success && result.data) {
             const { activeProjects, monthlyRevenue, pendingTasks, clientSatisfaction, trends } = result.data;
@@ -585,7 +593,7 @@ async function saveNewClient() {
     }
 
     try {
-        const result = await apiCall('clients.php', {
+        const result = await apiCall('clients', {
             method: 'POST',
             body: clientData
         });
@@ -619,7 +627,7 @@ async function saveClientAndGenerate() {
 
     try {
         // 3. Create the client first
-        const clientResult = await apiCall('clients.php', {
+        const clientResult = await apiCall('clients', {
             method: 'POST',
             body: clientData
         });
@@ -639,7 +647,7 @@ async function saveClientAndGenerate() {
             status: 'planning'
         };
         
-        const projectResult = await apiCall('projects.php', {
+        const projectResult = await apiCall('projects', {
             method: 'POST',
             body: projectData
         });
@@ -696,7 +704,7 @@ async function generateQuotationPreview(clientId, projectId) {
             items: state.items
         };
 
-        const result = await apiCall('quotations.php', {
+        const result = await apiCall('quotations', {
             method: 'POST',
             body: quotationData
         });
@@ -729,7 +737,7 @@ async function generateInvoicePreview(clientId, projectId) {
             items: state.items
         };
 
-        const result = await apiCall('invoices.php', {
+        const result = await apiCall('invoices', {
             method: 'POST',
             body: invoiceData
         });
@@ -756,7 +764,7 @@ function updatePaymentInfoFromModal() {
 // Initialize quotations page
 async function initializeQuotationsPage() {
     try {
-        const result = await apiCall('quotations.php');
+        const result = await apiCall('quotations');
         
         if (result.success) {
             state.allQuotations = result.data;
@@ -797,7 +805,7 @@ function renderQuotationsTable(quotations) {
 
 async function showQuotationDetail(quotationId) {
     try {
-        const result = await apiCall(`quotations.php?id=${quotationId}`);
+        const result = await apiCall(`quotations/${quotationId}`);
         
         if (result.success) {
             // Hide list, show detail
@@ -890,7 +898,7 @@ function renderQuotationContent(quotation) {
 // Initialize invoices page
 async function initializeInvoicesPage() {
     try {
-        const result = await apiCall('invoices.php');
+        const result = await apiCall('invoices');
         
         if (result.success) {
             state.allInvoices = result.data;
@@ -932,7 +940,7 @@ function renderInvoicesTable(invoices) {
 
 async function showInvoiceDetail(invoiceId) {
     try {
-        const result = await apiCall(`invoices.php?id=${invoiceId}`);
+        const result = await apiCall(`invoices/${invoiceId}`);
         
         if (result.success) {
             // Hide list, show detail
@@ -1165,7 +1173,7 @@ document.addEventListener('click', (e) => {
 // --- AUTHENTICATION FUNCTIONS ---
 async function checkSession() {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth.php?action=check_session`, {
+        const response = await fetch(`${API_BASE_URL}/auth/session`, {
             credentials: 'include'
         });
         
@@ -1222,13 +1230,14 @@ async function handleLogin() {
         loginBtn.querySelector('.login-btn-text').style.display = 'none';
         loginBtn.querySelector('.loader-spinner').style.display = 'inline-block';
 
-        const result = await apiCall('auth.php?action=login', {
+        const result = await apiCall('auth/login', {
             method: 'POST',
             body: { email, password }
         });
         
         if (result.success) {
             state.currentUser = result.data.user;
+            state.csrfToken = result.data.csrfToken; // Store the CSRF token from the login response
             initializeAppUI();
         } else {
             loginMessage.textContent = result.message || 'Invalid credentials';
@@ -1246,7 +1255,7 @@ async function handleLogin() {
 
 async function handleLogout() {
     try {
-        await apiCall('auth.php?action=logout', {
+        await apiCall('auth/logout', {
             method: 'POST'
         });
         window.location.reload();
@@ -1259,7 +1268,7 @@ async function handleLogout() {
 // --- CLIENT MANAGEMENT FUNCTIONS ---
 async function initializeClientsPage() {
     try {
-        const result = await apiCall('clients.php');
+        const result = await apiCall('clients');
         
         if (result.success) {
             state.allClients = result.data;
@@ -1316,7 +1325,7 @@ async function handleEditClientClick(button) {
     const editModal = document.getElementById('editClientModal');
     
     try {
-        const result = await apiCall(`clients.php?id=${clientId}`);
+        const result = await apiCall(`clients/${clientId}`);
         
         if (result.success) {
             const client = result.data;
@@ -1351,7 +1360,7 @@ async function saveClientChanges() {
     }
 
     try {
-        const result = await apiCall('clients.php', {
+        const result = await apiCall('clients', {
             method: 'PUT',
             body: clientData
         });
@@ -1372,7 +1381,7 @@ async function handleDeleteClient(button) {
     }
     
     try {
-        const result = await apiCall(`clients.php?id=${clientId}`, {
+        const result = await apiCall(`clients/${clientId}`, {
             method: 'DELETE'
         });
         
@@ -1391,7 +1400,7 @@ async function handleDeleteClient(button) {
 // --- SYSTEM SETTINGS FUNCTIONS ---
 async function loadSettings() {
     try {
-        const result = await apiCall('settings.php');
+        const result = await apiCall('settings');
         
         if (result.success) {
             appSettings = result.data;
@@ -1440,7 +1449,7 @@ async function saveSettings() {
     };
 
     try {
-        const result = await apiCall('settings.php', {
+        const result = await apiCall('settings', {
             method: 'PUT',
             body: updatedSettings
         });
@@ -1457,7 +1466,7 @@ async function saveSettings() {
 // --- PROJECTS MANAGEMENT FUNCTIONS ---
 async function initializeProjectsPage() {
     try {
-        const result = await apiCall('projects.php');
+        const result = await apiCall('projects');
         
         if (result.success) {
             state.allProjects = result.data;
@@ -1526,7 +1535,7 @@ document.head.appendChild(style);
 // Load clients for dropdown
 async function loadClientsForSelect(selectId) {
     try {
-        const result = await apiCall('clients.php');
+        const result = await apiCall('clients');
         
         if (result.success) {
             const select = document.getElementById(selectId);

@@ -1,8 +1,0 @@
-{
-    "php.validate.executablePath": null,
-    "intelephense.environment.phpVersion": "8.2",
-    "intelephense.files.associations": ["*.php"],
-    "intelephense.diagnostics.undefinedFunctions": false,
-    "intelephense.diagnostics.undefinedConstants": false,
-    "intelephense.diagnostics.undefinedTypes": false
-}
