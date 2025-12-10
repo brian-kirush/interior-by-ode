@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -22,7 +23,7 @@ const corsOptions = {
 };
 
 if (process.env.NODE_ENV === 'production') {
-    corsOptions.origin = process.env.FRONTEND_URL || 'https://interior-by-ode.onrender.com';
+    corsOptions.origin = process.env.FRONTEND_URL || ['https://interior-by-ode.onrender.com', 'http://localhost:3000'];
 } else {
     corsOptions.origin = ['http://localhost:8000', 'http://localhost:5500', 'http://localhost:3000', 'http://localhost:5173'];
 }
@@ -114,14 +115,19 @@ app.get('/health', async (req, res) => {
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-    const clientPath = path.join(__dirname, '../../client');
+    // CORRECTED PATH: Go up 3 levels from src/ to reach project root, then into client/
+    const clientPath = path.join(__dirname, '../../../client');
     
     // Check if client directory exists before serving static files
-    const fs = require('fs');
     if (fs.existsSync(clientPath)) {
         app.use(express.static(clientPath));
+        
+        // Handle SPA routing - return index.html for all non-API routes
         app.get('*', (req, res) => {
-            res.sendFile(path.join(clientPath, 'index.html'));
+            // Don't interfere with API routes
+            if (!req.path.startsWith('/api/')) {
+                res.sendFile(path.join(clientPath, 'index.html'));
+            }
         });
         console.log('✅ Serving static files from:', clientPath);
     } else {
@@ -139,11 +145,11 @@ app.use((err, req, res, next) => {
     });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
     res.status(404).json({
         error: 'Not Found',
-        message: `Route ${req.originalUrl} not found`,
+        message: `API route ${req.originalUrl} not found`,
         timestamp: new Date().toISOString()
     });
 });
@@ -156,15 +162,25 @@ app.listen(PORT, () => {
     
     // Log CORS configuration
     if (process.env.NODE_ENV === 'production') {
-        console.log(`🌐 CORS Origin: ${corsOptions.origin}`);
+        console.log(`🌐 CORS Origin:`, corsOptions.origin);
     } else {
-        console.log(`🌐 CORS Origins: ${corsOptions.origin.join(', ')}`);
+        console.log(`🌐 CORS Origins:`, corsOptions.origin);
     }
     
     // Log database status
     if (process.env.DATABASE_URL) {
-        console.log(`💾 Database: Configured (${process.env.DATABASE_URL ? 'URL present' : 'No URL'})`);
+        console.log(`💾 Database: Configured`);
     } else {
         console.warn('⚠️  Database: DATABASE_URL not set');
+    }
+    
+    // Log static file serving status
+    if (process.env.NODE_ENV === 'production') {
+        const clientPath = path.join(__dirname, '../../../client');
+        if (fs.existsSync(clientPath)) {
+            console.log(`📁 Serving frontend from: ${clientPath}`);
+        } else {
+            console.log(`📁 Frontend not found at: ${clientPath}`);
+        }
     }
 });
