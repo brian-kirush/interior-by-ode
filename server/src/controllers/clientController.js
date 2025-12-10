@@ -5,7 +5,29 @@ const pool = require('../config/database');
  */
 exports.getAll = async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM clients ORDER BY name ASC');
+        const { sort = 'name', direction = 'asc', filter = '' } = req.query;
+
+        // Validate sort column to prevent SQL injection
+        const allowedSortColumns = ['id', 'name', 'email', 'phone', 'company'];
+        if (!allowedSortColumns.includes(sort)) {
+            return res.status(400).json({ success: false, message: 'Invalid sort column.' });
+        }
+
+        // Validate sort direction
+        const sortDirection = direction.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+        let query = `SELECT * FROM clients`;
+        const queryParams = [];
+
+        if (filter) {
+            query += ` WHERE name ILIKE $1 OR email ILIKE $1 OR company ILIKE $1`;
+            queryParams.push(`%${filter}%`);
+        }
+
+        query += ` ORDER BY ${sort} ${sortDirection}`;
+
+        const result = await pool.query(query, queryParams);
+
         res.json({
             success: true,
             message: 'Clients retrieved successfully',
@@ -13,10 +35,7 @@ exports.getAll = async (req, res) => {
         });
     } catch (error) {
         console.error('Error getting all clients:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to retrieve clients'
-        });
+        res.status(500).json({ success: false, message: 'Failed to retrieve clients' });
     }
 };
 

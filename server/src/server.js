@@ -63,6 +63,31 @@ async function initializeDatabase() {
     try {
         console.log('🔧 Initializing database tables...');
         
+        // Universal trigger function for updated_at
+        const triggerFunctionSql = `
+            CREATE OR REPLACE FUNCTION update_updated_at_column()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = NOW();
+                RETURN NEW;
+            END;
+            $$ language 'plpgsql';
+        `;
+        await pool.query(triggerFunctionSql);
+
+        // Custom ENUM types for consistency
+        const enums = [
+            `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_status') THEN CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed'); END IF; END $$;`,
+            `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_priority') THEN CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high'); END IF; END $$;`,
+            `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'project_status') THEN CREATE TYPE project_status AS ENUM ('planning', 'in_progress', 'completed', 'on_hold', 'cancelled', 'submitted'); END IF; END $$;`,
+            `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'document_status') THEN CREATE TYPE document_status AS ENUM ('draft', 'sent', 'approved', 'rejected', 'paid', 'overdue', 'cancelled'); END IF; END $$;`
+        ];
+
+        for (const enumSql of enums) {
+            await pool.query(enumSql);
+        }
+        console.log('✅ Custom types ensured.');
+
         const tables = [
             `CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -78,6 +103,7 @@ async function initializeDatabase() {
                 name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
                 phone VARCHAR(20),
+                company VARCHAR(100),
                 address TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -87,31 +113,43 @@ async function initializeDatabase() {
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(200) NOT NULL,
                 description TEXT,
-                client_id INTEGER REFERENCES clients(id),
-                budget DECIMAL(10, 2),
-                status VARCHAR(50) DEFAULT 'pending',
-                start_date DATE,
-                deadline DATE,
+                client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+                budget DECIMAL(12, 2),
+                status project_status DEFAULT 'planning',
+                progress INTEGER DEFAULT 0,
+                notes TEXT,
+                start_date TIMESTAMPTZ,
+                deadline TIMESTAMPTZ,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             
+            `CREATE TABLE IF NOT EXISTS project_milestones (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                phase VARCHAR(100) NOT NULL,
+                activity TEXT NOT NULL,
+                is_completed BOOLEAN DEFAULT false
+            )`,
+
             `CREATE TABLE IF NOT EXISTS tasks (
                 id SERIAL PRIMARY KEY,
-                project_id INTEGER REFERENCES projects(id),
-                description TEXT NOT NULL,
-                status VARCHAR(50) DEFAULT 'pending',
+                project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                status task_status DEFAULT 'pending',
                 assigned_to VARCHAR(100),
-                priority VARCHAR(20) DEFAULT 'medium',
-                deadline DATE,
-                completed_at TIMESTAMP,
+                priority task_priority DEFAULT 'medium',
+                due_date TIMESTAMPTZ,
+                completed_at TIMESTAMPTZ,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             
             `CREATE TABLE IF NOT EXISTS reviews (
                 id SERIAL PRIMARY KEY,
-                project_id INTEGER REFERENCES projects(id),
+                client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+                project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
                 rating INTEGER CHECK (rating >= 1 AND rating <= 5),
                 comment TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -119,33 +157,83 @@ async function initializeDatabase() {
             
             `CREATE TABLE IF NOT EXISTS quotations (
                 id SERIAL PRIMARY KEY,
-                project_id INTEGER REFERENCES projects(id),
-                amount DECIMAL(10, 2) NOT NULL,
-                status VARCHAR(50) DEFAULT 'pending',
+                quotation_number VARCHAR(50) UNIQUE NOT NULL,
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+                subtotal DECIMAL(12, 2) NOT NULL,
+                tax_rate DECIMAL(5, 2) DEFAULT 16.00,
+                tax_amount DECIMAL(12, 2) DEFAULT 0,
+                discount_amount DECIMAL(12, 2) DEFAULT 0,
+                total DECIMAL(12, 2) NOT NULL,
+                status document_status DEFAULT 'draft',
                 notes TEXT,
+                valid_until DATE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            `CREATE TABLE IF NOT EXISTS quotation_items (
+                id SERIAL PRIMARY KEY,
+                quotation_id INTEGER NOT NULL REFERENCES quotations(id) ON DELETE CASCADE,
+                description TEXT NOT NULL,
+                unit VARCHAR(50),
+                quantity DECIMAL(10, 2) NOT NULL,
+                unit_price DECIMAL(12, 2) NOT NULL,
+                total DECIMAL(12, 2) NOT NULL
             )`,
             
             `CREATE TABLE IF NOT EXISTS invoices (
                 id SERIAL PRIMARY KEY,
-                project_id INTEGER REFERENCES projects(id),
-                amount DECIMAL(10, 2) NOT NULL,
-                status VARCHAR(50) DEFAULT 'pending',
+                invoice_number VARCHAR(50) UNIQUE NOT NULL,
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+                quotation_id INTEGER REFERENCES quotations(id) ON DELETE SET NULL,
+                subtotal DECIMAL(12, 2) NOT NULL,
+                tax_amount DECIMAL(12, 2) DEFAULT 0,
+                discount_amount DECIMAL(12, 2) DEFAULT 0,
+                total DECIMAL(12, 2) NOT NULL,
+                status document_status DEFAULT 'draft',
+                issue_date DATE NOT NULL,
                 due_date DATE,
-                paid_at TIMESTAMP,
+                paid_at TIMESTAMPTZ,
+                notes TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            `CREATE TABLE IF NOT EXISTS invoice_items (
+                id SERIAL PRIMARY KEY,
+                invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+                description TEXT NOT NULL,
+                quantity DECIMAL(10, 2) NOT NULL,
+                unit_price DECIMAL(12, 2) NOT NULL,
+                total DECIMAL(12, 2) NOT NULL
+            )`,
+
+            `CREATE TABLE IF NOT EXISTS settings (
+                id SERIAL PRIMARY KEY,
+                setting_key VARCHAR(100) UNIQUE NOT NULL,
+                setting_value TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
         for (const tableSql of tables) {
             try {
                 await pool.query(tableSql);
-                console.log(`✅ Table created successfully`);
             } catch (error) {
                 console.error(`❌ Error creating table:`, error.message);
             }
         }
-        
+
+        // Apply the trigger to all relevant tables
+        const tablesWithTrigger = ['clients', 'projects', 'tasks', 'settings'];
+        for (const tableName of tablesWithTrigger) {
+            await pool.query(`
+                DROP TRIGGER IF EXISTS update_${tableName}_updated_at ON ${tableName};
+                CREATE TRIGGER update_${tableName}_updated_at BEFORE UPDATE ON ${tableName} FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+            `);
+        }
+
         console.log('✅ Database tables initialized successfully');
         return true;
     } catch (error) {

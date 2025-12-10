@@ -69,6 +69,42 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Update a task
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, description, status, priority, assigned_to, due_date } = req.body;
+
+        const result = await pool.query(
+            `UPDATE tasks SET 
+                title = $1, 
+                description = $2, 
+                status = $3, 
+                priority = $4, 
+                assigned_to = $5, 
+                due_date = $6
+             WHERE id = $7 RETURNING *`,
+            [title, description, status, priority, assigned_to, due_date, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Task not found' });
+        }
+
+        res.json({
+            success: true,
+            message: 'Task updated successfully',
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Update task error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update task'
+        });
+    }
+});
+
 // Update task status
 router.put('/:id/status', async (req, res) => {
     try {
@@ -133,10 +169,7 @@ router.delete('/:id', async (req, res) => {
             });
         }
 
-        res.json({
-            success: true,
-            message: 'Task deleted'
-        });
+        res.status(204).send();
     } catch (error) {
         console.error('Delete task error:', error);
         res.status(500).json({

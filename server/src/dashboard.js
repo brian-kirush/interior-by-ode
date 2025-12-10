@@ -16,24 +16,19 @@ router.get('/stats', async (req, res) => {
         const activeProjectsResult = await pool.query(
             "SELECT COUNT(*) as count FROM projects WHERE status NOT IN ('completed', 'submitted')"
         );
-
-        // Project trend calculation
-        const projectTrendResult = await pool.query(
-            `SELECT
-                (SELECT COUNT(*) FROM projects WHERE created_at >= date_trunc('month', current_date)) as current_month_projects,
-                (SELECT COUNT(*) FROM projects WHERE created_at >= date_trunc('month', current_date - interval '1 month') AND created_at < date_trunc('month', current_date)) as last_month_projects
-            `
-        );
         
         // Monthly revenue
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
+        const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+        const prevMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
         const revenueResult = await pool.query(
-            `SELECT SUM(budget) as total FROM projects
-             WHERE status = 'completed' 
-             AND EXTRACT(MONTH FROM updated_at) = $1 
-             AND EXTRACT(YEAR FROM updated_at) = $2`,
-            [currentMonth, currentYear]
+            `SELECT 
+                (SELECT SUM(total) FROM invoices WHERE status = 'paid' AND EXTRACT(MONTH FROM paid_at) = $1 AND EXTRACT(YEAR FROM paid_at) = $2) as current_revenue,
+                (SELECT SUM(total) FROM invoices WHERE status = 'paid' AND EXTRACT(MONTH FROM paid_at) = $3 AND EXTRACT(YEAR FROM paid_at) = $4) as previous_revenue
+            `,
+            [currentMonth, currentYear, prevMonth, prevMonthYear]
         );
         
         // Pending tasks (assuming table exists now)
@@ -41,6 +36,14 @@ router.get('/stats', async (req, res) => {
             "SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'"
         );
         pendingTasks = parseInt(pendingTasksResult.rows[0].count) || 0;
+
+        // Previous month's pending tasks for trend
+        const prevPendingTasksResult = await pool.query(
+            `SELECT COUNT(*) as count FROM tasks 
+             WHERE status != 'completed' 
+             AND created_at < date_trunc('month', current_date)`
+        );
+        const prevPendingTasks = parseInt(prevPendingTasksResult.rows[0].count) || 0;
 
         // Client Satisfaction (assuming table exists now)
         const satisfactionResult = await pool.query("SELECT AVG(rating) as avg_rating FROM reviews WHERE rating IS NOT NULL");
@@ -53,19 +56,23 @@ router.get('/stats', async (req, res) => {
             "SELECT COUNT(*) as count FROM clients"
         );
 
+        const currentRevenue = parseFloat(revenueResult.rows[0].current_revenue) || 0;
+        const previousRevenue = parseFloat(revenueResult.rows[0].previous_revenue) || 0;
+        const revenueTrend = previousRevenue > 0 ? Math.round(((currentRevenue - previousRevenue) / previousRevenue) * 100) : (currentRevenue > 0 ? 100 : 0);
+
         res.json({
             success: true,
             message: 'Dashboard stats retrieved',
             data: {
                 activeProjects: parseInt(activeProjectsResult.rows[0].count) || 0,
-                monthlyRevenue: parseFloat(revenueResult.rows[0].total) || 0,
+                monthlyRevenue: currentRevenue,
                 pendingTasks: pendingTasks,
                 totalClients: parseInt(totalClientsResult.rows[0].count) || 0,
                 clientSatisfaction: clientSatisfaction,
                 trends: {
-                    projects: 15,
-                    revenue: 12,
-                    tasks: -3
+                    projects: 15, // Placeholder, as project trend is complex
+                    revenue: revenueTrend,
+                    tasks: pendingTasks - prevPendingTasks
                 }
             }
         });
@@ -114,10 +121,10 @@ router.get('/upcoming-deadlines', async (req, res) => {
             `SELECT t.*, p.name as project_name
              FROM tasks t
              JOIN projects p ON t.project_id = p.id
-             WHERE t.deadline IS NOT NULL 
+             WHERE t.due_date IS NOT NULL 
              AND t.status != 'completed'
-             AND t.deadline >= CURRENT_DATE
-             ORDER BY t.deadline ASC
+             AND t.due_date >= CURRENT_DATE
+             ORDER BY t.due_date ASC
              LIMIT 10`
         );
 
@@ -150,12 +157,12 @@ router.get('/revenue-data', async (req, res) => {
         
         const result = await pool.query(
             `SELECT 
-                to_char(date_trunc('month', paid_at), 'YYYY-MM') as month,
-                SUM(total) as revenue
-             FROM invoices
-             WHERE status = 'paid'
-             AND paid_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '${months} months'
-             AND paid_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+                EXTRACT(MONTH FROM updated_at) as month,
+                EXTRACT(YEAR FROM updated_at) as year,
+                SUM(budget) as revenue
+             FROM projects
+             WHERE status = 'completed'
+             AND updated_at >= CURRENT_DATE - INTERVAL '${months} months'
              GROUP BY year, month
              ORDER BY year, month`
         );

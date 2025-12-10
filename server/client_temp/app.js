@@ -29,6 +29,9 @@ const state = {
     projectSortDirection: 'asc',
     allQuotations: [],
     allInvoices: [],
+    clientSortColumn: 'name',
+    clientSortDirection: 'asc',
+    clientFilterQuery: '',
     allTasks: [],
     allClients: [],
     currentUser: null, // Holds logged-in user data
@@ -317,20 +320,29 @@ async function loadDashboardStats() {
 }
 
 async function loadClients() {
+    // Construct URL with query parameters for backend sorting and filtering
+    const url = new URL(`${API_BASE_URL}/clients`);
+    url.searchParams.append('sort', state.clientSortColumn);
+    url.searchParams.append('direction', state.clientSortDirection);
+    if (state.clientFilterQuery) {
+        url.searchParams.append('filter', state.clientFilterQuery);
+    }
+
     try {
-        const result = await apiFetch(`${API_BASE_URL}/clients`);
+        const result = await apiFetch(url.toString());
         if (result.success) {
             state.allClients = result.data;
             renderClientsTable(state.allClients);
         }
     } catch (error) {
-        console.error("Failed to load clients:", error);
+        console.error("Failed to load and render clients:", error);
     }
 }
 
 function renderClientsTable(clients) {
     const tableBody = document.getElementById('clientsTableBody');
     tableBody.innerHTML = '';
+
     if (clients.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No clients found.</td></tr>';
         return;
@@ -349,6 +361,20 @@ function renderClientsTable(clients) {
         `;
         tableBody.appendChild(row);
     });
+
+    // Update sort indicators in table headers
+    document.querySelectorAll('#clients-page .sortable').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.sort === state.clientSortColumn) {
+            th.classList.add(`sort-${state.clientSortDirection}`);
+        }
+    });
+}
+
+function handleClientSort(column) {
+    state.clientSortDirection = state.clientSortColumn === column && state.clientSortDirection === 'asc' ? 'desc' : 'asc';
+    state.clientSortColumn = column;
+    loadClients(); // Reload data from backend with new sort parameters
 }
 
 async function loadProjects() {
@@ -555,6 +581,72 @@ async function loadClientsForSelect(selectId) {
     }
 }
 
+async function showDocumentViewer(docId, docType) {
+    try {
+        const result = await apiFetch(`${API_BASE_URL}/${docType}s/${docId}`);
+        if (!result.success) {
+            return showNotification(`Failed to load ${docType}.`, 'error');
+        }
+
+        const doc = result.data;
+        const modal = document.getElementById('viewDocumentModal');
+        const title = modal.querySelector('h3');
+        const content = modal.querySelector('.document-content');
+
+        let itemsHtml = doc.items.map(item => `
+            <tr>
+                <td>${item.description}</td>
+                <td>${item.quantity}</td>
+                <td>${formatCurrency(item.unit_price)}</td>
+                <td>${formatCurrency(item.total)}</td>
+            </tr>
+        `).join('');
+
+        if (docType === 'quotation') {
+            title.textContent = `Quotation #${doc.quotation_number}`;
+            content.innerHTML = `
+                <p><strong>Client:</strong> ${doc.client_name}</p>
+                <p><strong>Date:</strong> ${formatDate(doc.created_at)}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${doc.status}">${doc.status}</span></p>
+                <hr>
+                <h4>Items</h4>
+                <table class="table">
+                    <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div class="summary">
+                    <p>Subtotal: <span>${formatCurrency(doc.subtotal)}</span></p>
+                    <p>Tax (${doc.tax_rate}%): <span>${formatCurrency(doc.tax_amount)}</span></p>
+                    <p>Discount: <span>- ${formatCurrency(doc.discount_amount)}</span></p>
+                    <h4>Total: <span>${formatCurrency(doc.total)}</span></h4>
+                </div>
+            `;
+        } else if (docType === 'invoice') {
+            title.textContent = `Invoice #${doc.invoice_number}`;
+            content.innerHTML = `
+                <p><strong>Client:</strong> ${doc.client_name}</p>
+                <p><strong>Issue Date:</strong> ${formatDate(doc.issue_date)}</p>
+                <p><strong>Due Date:</strong> ${formatDate(doc.due_date)}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${doc.status}">${doc.status}</span></p>
+                <hr>
+                <h4>Items</h4>
+                <table class="table">
+                    <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div class="summary">
+                    <p>Subtotal: <span>${formatCurrency(doc.subtotal)}</span></p>
+                    <p>Tax: <span>${formatCurrency(doc.tax_amount)}</span></p>
+                    <h4>Total: <span>${formatCurrency(doc.total)}</span></h4>
+                </div>
+            `;
+        }
+        openModal('viewDocumentModal');
+    } catch (error) {
+        console.error(`Failed to show ${docType}:`, error);
+    }
+}
+
 // --- MODAL HANDLING ---
 
 function openModal(modalId) {
@@ -633,6 +725,98 @@ async function handleSaveClient() {
         }
     } catch (error) {
         console.error('Failed to save client:', error);
+    }
+}
+
+async function handleEditProject(projectId) {
+    try {
+        const result = await apiFetch(`${API_BASE_URL}/projects/${projectId}`);
+        if (!result.success) return;
+
+        const project = result.data;
+        await loadClientsForSelect('editProjectClient');
+
+        document.getElementById('editProjectId').value = project.id;
+        document.getElementById('editProjectName').value = project.name;
+        document.getElementById('editProjectDescription').value = project.description || '';
+        document.getElementById('editProjectClient').value = project.client_id || '';
+        document.getElementById('editProjectBudget').value = project.budget || 0;
+        document.getElementById('editProjectStatus').value = project.status || 'planning';
+        document.getElementById('editProjectProgress').value = project.progress || 0;
+        document.getElementById('editProjectProgressValue').textContent = `${project.progress || 0}%`;
+        document.getElementById('editProjectStartDate').value = project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '';
+        document.getElementById('editProjectDeadline').value = project.deadline ? new Date(project.deadline).toISOString().split('T')[0] : '';
+        document.getElementById('editProjectNotes').value = project.notes || '';
+
+        openModal('editProjectModal');
+    } catch (error) {
+        console.error(`Failed to open edit modal for project ${projectId}:`, error);
+    }
+}
+
+async function handleSaveProject() {
+    const projectId = document.getElementById('editProjectId').value;
+    const projectData = {
+        name: document.getElementById('editProjectName').value,
+        description: document.getElementById('editProjectDescription').value,
+        client_id: document.getElementById('editProjectClient').value,
+        budget: parseFloat(document.getElementById('editProjectBudget').value) || 0,
+        status: document.getElementById('editProjectStatus').value,
+        progress: parseInt(document.getElementById('editProjectProgress').value) || 0,
+        start_date: document.getElementById('editProjectStartDate').value || null,
+        deadline: document.getElementById('editProjectDeadline').value || null,
+        notes: document.getElementById('editProjectNotes').value,
+    };
+
+    await apiFetch(`${API_BASE_URL}/projects/${projectId}`, { method: 'PUT', body: JSON.stringify(projectData) });
+    showNotification('Project updated successfully!');
+    closeModal('editProjectModal');
+    loadProjects();
+}
+
+async function handleEditTask(taskId) {
+    try {
+        const task = state.allTasks.find(t => t.id === parseInt(taskId));
+        if (!task) {
+            return showNotification('Task not found.', 'error');
+        }
+
+        document.getElementById('editTaskId').value = task.id;
+        document.getElementById('editTaskTitle').value = task.title;
+        document.getElementById('editTaskDescription').value = task.description || '';
+        document.getElementById('editTaskStatus').value = task.status;
+        document.getElementById('editTaskPriority').value = task.priority;
+        document.getElementById('editTaskAssignedTo').value = task.assigned_to || '';
+        document.getElementById('editTaskDueDate').value = task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '';
+
+        openModal('editTaskModal');
+    } catch (error) {
+        console.error(`Failed to open edit modal for task ${taskId}:`, error);
+    }
+}
+
+async function handleSaveTask() {
+    const taskId = document.getElementById('editTaskId').value;
+    const taskData = {
+        title: document.getElementById('editTaskTitle').value,
+        description: document.getElementById('editTaskDescription').value,
+        status: document.getElementById('editTaskStatus').value,
+        priority: document.getElementById('editTaskPriority').value,
+        assigned_to: document.getElementById('editTaskAssignedTo').value,
+        due_date: document.getElementById('editTaskDueDate').value || null,
+    };
+
+    if (!taskData.title) {
+        return showNotification('Task title is required.', 'error');
+    }
+
+    try {
+        await apiFetch(`${API_BASE_URL}/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify(taskData) });
+        showNotification('Task updated successfully!');
+        closeModal('editTaskModal');
+        loadTasks(); // Refresh the tasks list
+    } catch (error) {
+        console.error(`Failed to save task ${taskId}:`, error);
     }
 }
 
@@ -820,6 +1004,20 @@ async function handleDeleteInvoice(invoiceId) {
     }
 }
 
+async function handleDeleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) {
+        return;
+    }
+    try {
+        await apiFetch(`${API_BASE_URL}/tasks/${taskId}`, { method: 'DELETE' });
+        showNotification('Task deleted successfully!');
+        loadTasks(); // Refresh the tasks list
+    } catch (error) {
+        console.error(`Failed to delete task ${taskId}:`, error);
+    }
+}
+
+
 // --- MOBILE & IOS SPECIFIC FIXES ---
 
 function applyMobileFixes() {
@@ -967,6 +1165,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModal('newProjectModal', 'newProjectBtn', 'cancelNewProjectBtn');
     setupModal('editClientModal', null, 'cancelEditClientBtn'); // Opened programmatically
     setupModal('editProjectModal', null, 'cancelEditProjectBtn'); // Opened programmatically
+    setupModal('editTaskModal', null, 'cancelEditTaskBtn'); // Opened programmatically
+    setupModal('viewDocumentModal', null, 'closeDocumentViewerBtn');
 
     // --- Page-specific Event Listeners ---
     document.body.addEventListener('click', (e) => {
@@ -976,6 +1176,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (e.target.closest('.delete-client-btn')) {
             handleDeleteClient(e.target.closest('.delete-client-btn').dataset.id);
+        }
+
+        // Client table sorting
+        if (e.target.closest('#clients-page .sortable')) {
+            handleClientSort(e.target.closest('.sortable').dataset.sort);
         }
 
         // Project actions
@@ -988,7 +1193,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Quotation actions
         if (e.target.closest('.view-quotation-btn')) {
-            showNotification('View quotation is not yet implemented.', 'error');
+            showDocumentViewer(e.target.closest('.view-quotation-btn').dataset.id, 'quotation');
         }
         if (e.target.closest('.delete-quotation-btn')) {
             handleDeleteQuotation(e.target.closest('.delete-quotation-btn').dataset.id);
@@ -996,7 +1201,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Invoice actions
         if (e.target.closest('.view-invoice-btn')) {
-            showNotification('View invoice is not yet implemented.', 'error');
+            showDocumentViewer(e.target.closest('.view-invoice-btn').dataset.id, 'invoice');
         }
         if (e.target.closest('.delete-invoice-btn')) {
             handleDeleteInvoice(e.target.closest('.delete-invoice-btn').dataset.id);
@@ -1004,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Task actions
         if (e.target.closest('.edit-task-btn')) {
-            showNotification('Edit task is not yet implemented.', 'error');
+            handleEditTask(e.target.closest('.edit-task-btn').dataset.id);
         }
         if (e.target.closest('.delete-task-btn')) {
             handleDeleteTask(e.target.closest('.delete-task-btn').dataset.id);
@@ -1024,6 +1229,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Form Submissions ---
     document.getElementById('saveSettingsBtn')?.addEventListener('click', saveSettings);
     document.getElementById('saveClientChangesBtn')?.addEventListener('click', handleSaveClient);
+    document.getElementById('saveProjectChangesBtn')?.addEventListener('click', handleSaveProject);
+    document.getElementById('saveTaskChangesBtn')?.addEventListener('click', handleSaveTask);
     document.getElementById('addNewClientBtn')?.addEventListener('click', handleAddNewClient);
     
     // --- Calculator Page ---
@@ -1032,6 +1239,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('generateQuoteBtn')?.addEventListener('click', () => generateQuotation());
     document.getElementById('clearCalculatorBtn')?.addEventListener('click', clearCalculator);
+
+    // --- Filtering and Sliders ---
+    document.getElementById('clientSearchInput')?.addEventListener('input', (e) => {
+        state.clientFilterQuery = e.target.value;
+        loadClients(); // Reload data from backend with new filter
+    });
+    document.getElementById('editProjectProgress')?.addEventListener('input', (e) => {
+        document.getElementById('editProjectProgressValue').textContent = `${e.target.value}%`;
+    });
+
 
     // --- Start the App ---
     initializeApp();
