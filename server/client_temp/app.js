@@ -578,3 +578,111 @@ async function handleDeleteClient(clientId) {
         console.error(`Failed to delete client ${clientId}:`, error);
     }
 }
+
+// --- INITIALIZATION & EVENT LISTENERS ---
+
+/**
+ * Initializes the application, sets up event listeners.
+ */
+async function initializeApp() {
+    const isLoggedIn = await checkSession();
+    if (isLoggedIn) {
+        // Load initial page data if the user is logged in
+        navigateToPage(state.currentPage);
+        document.querySelector('.app-container').style.opacity = '1';
+    } else {
+        showLoginScreen();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // --- General Setup ---
+    const loader = document.querySelector('.loader');
+    if (loader) {
+        // Ensure loader is hidden if something goes wrong with the animation
+        setTimeout(() => {
+            loader.style.display = 'none';
+        }, 4500);
+    }
+
+    // --- Authentication ---
+    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+    document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+    document.getElementById('logoutBtnMobile')?.addEventListener('click', handleLogout);
+
+    // --- Navigation ---
+    document.querySelectorAll('.nav-item[data-page]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateToPage(link.dataset.page);
+        });
+    });
+
+    // --- Mobile Menu Toggle ---
+    const mobileNavToggle = document.getElementById('mobileNavToggle');
+    const mobileNavMenu = document.getElementById('mobileNavMenu');
+    mobileNavToggle?.addEventListener('click', () => {
+        mobileNavMenu.classList.toggle('open');
+    });
+
+    // --- Modals ---
+    setupModal('newProjectModal', 'newProjectBtn', 'cancelNewProjectBtn');
+    setupModal('editClientModal', null, 'cancelEditClientBtn'); // Opened programmatically
+    setupModal('editProjectModal', null, 'cancelEditProjectBtn'); // Opened programmatically
+
+    // --- Page-specific Event Listeners ---
+    document.body.addEventListener('click', (e) => {
+        // Client actions
+        if (e.target.closest('.edit-client-btn')) {
+            handleEditClient(e.target.closest('.edit-client-btn').dataset.id);
+        }
+        if (e.target.closest('.delete-client-btn')) {
+            handleDeleteClient(e-target.closest('.delete-client-btn').dataset.id);
+        }
+
+        // Project actions
+        if (e.target.closest('.edit-project-btn')) {
+            // handleEditProject(e.target.closest('.edit-project-btn').dataset.id);
+            showNotification('Edit project functionality is not yet implemented.', 'error');
+        }
+        if (e-target.closest('.delete-project-btn')) {
+            // handleDeleteProject(e.target.closest('.delete-project-btn').dataset.id);
+            showNotification('Delete project functionality is not yet implemented.', 'error');
+        }
+
+        // Quotation actions
+        if (e.target.closest('.view-quotation-btn')) {
+            showNotification('View quotation functionality is not yet implemented.', 'error');
+        }
+        if (e.target.closest('.delete-quotation-btn')) {
+            showNotification('Delete quotation functionality is not yet implemented.', 'error');
+        }
+
+        // Invoice actions
+        if (e.target.closest('.view-invoice-btn')) {
+            showNotification('View invoice functionality is not yet implemented.', 'error');
+        }
+        if (e.target.closest('.delete-invoice-btn')) {
+            showNotification('Delete invoice functionality is not yet implemented.', 'error');
+        }
+    });
+
+    // --- Form Submissions ---
+    document.getElementById('saveSettingsBtn')?.addEventListener('click', saveSettings);
+    document.getElementById('saveClientChangesBtn')?.addEventListener('click', handleSaveClient);
+    document.getElementById('addNewClientBtn')?.addEventListener('click', handleAddNewClient);
+    
+    // --- Calculator Page ---
+    document.getElementById('addItemBtn')?.addEventListener('click', () => {
+        showNotification('Add item functionality is not yet implemented.', 'error');
+    });
+    document.getElementById('clearAllBtn')?.addEventListener('click', () => {
+        showNotification('Clear all functionality is not yet implemented.', 'error');
+    });
+    document.getElementById('generateQuoteBtn')?.addEventListener('click', () => {
+        showNotification('Generate quote functionality is not yet implemented.', 'error');
+    });
+
+    // --- Start the App ---
+    initializeApp();
+});
