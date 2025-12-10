@@ -777,6 +777,18 @@ async function initializeApp() {
     }
 }
 
+/**
+ * Adds click listeners to dashboard cards to navigate to relevant pages.
+ */
+function setupDashboardNavigation() {
+    document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
+    document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
+    document.getElementById('pendingTasksCard')?.addEventListener('click', () => showNotification('Tasks page is not yet implemented.', 'error'));
+    document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
+}
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- General Setup ---
     const loader = document.querySelector('.loader');
@@ -789,6 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+    setupDashboardNavigation();
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
     document.querySelectorAll('input.form-control').forEach(input => {
         input.addEventListener('focus', () => {
