@@ -1,176 +1,122 @@
 const pool = require('../config/database');
 
-class ClientController {
-    static async getAll(req, res) {
-        try {
-            const result = await pool.query('SELECT * FROM clients ORDER BY name ASC');
-            res.json({
-                success: true,
-                message: 'Clients retrieved successfully',
-                data: result.rows
-            });
-        } catch (error) {
-            console.error('Get clients error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to retrieve clients'
-            });
-        }
+/**
+ * Gets all clients from the database.
+ */
+exports.getAll = async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM clients ORDER BY name ASC');
+        res.json({
+            success: true,
+            message: 'Clients retrieved successfully',
+            data: result.rows
+        });
+    } catch (error) {
+        console.error('Error getting all clients:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve clients'
+        });
     }
+};
 
-    static async getById(req, res) {
-        try {
-            const { id } = req.params;
-            const result = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
-            const client = result.rows[0];
+/**
+ * Gets a single client by their ID.
+ */
+exports.getById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
 
-            if (!client) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Client not found'
-                });
-            }
-
-            res.json({
-                success: true,
-                message: 'Client retrieved successfully',
-                data: client
-            });
-        } catch (error) {
-            console.error('Get client error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to retrieve client'
-            });
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Client not found' });
         }
+
+        res.json({
+            success: true,
+            message: 'Client retrieved successfully',
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error(`Error getting client by ID:`, error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve client'
+        });
     }
+};
 
-    static async create(req, res) {
-        try {
-            const { name, company, email, phone, address } = req.body;
+/**
+ * Creates a new client.
+ */
+exports.create = async (req, res) => {
+    try {
+        const { name, email, phone, address, company } = req.body;
+        const result = await pool.query(
+            'INSERT INTO clients (name, email, phone, address, company) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [name, email, phone, address, company]
+        );
 
-            if (!name || !email || !phone || !address) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Name, email, phone, and address are required'
-                });
-            }
+        res.status(201).json({
+            success: true,
+            message: 'Client created successfully',
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error creating client:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create client'
+        });
+    }
+};
 
-            // Check if email exists
-            const existingResult = await pool.query('SELECT id FROM clients WHERE email = $1', [email]);
-            if (existingResult.rows.length > 0) {
-                return res.status(409).json({
-                    success: false,
-                    message: 'Client with this email already exists'
-                });
-            }
+/**
+ * Updates an existing client.
+ */
+exports.update = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, phone, address, company } = req.body;
 
-            const result = await pool.query(
-                `INSERT INTO clients (name, company, email, phone, address) 
-                 VALUES ($1, $2, $3, $4, $5) 
-                 RETURNING *`,
-                [name, company || null, email, phone, address]
-            );
+        const result = await pool.query(
+            'UPDATE clients SET name = $1, email = $2, phone = $3, address = $4, company = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *',
+            [name, email, phone, address, company, id]
+        );
 
-            res.status(201).json({
-                success: true,
-                message: 'Client created successfully',
-                data: result.rows[0]
-            });
-        } catch (error) {
-            console.error('Create client error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to create client'
-            });
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Client not found' });
         }
+
+        res.json({
+            success: true,
+            message: 'Client updated successfully',
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error updating client:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update client'
+        });
     }
+};
 
-    static async update(req, res) {
-        try {
-            const { id } = req.params;
-            const { name, company, email, phone, address } = req.body;
+/**
+ * Deletes a client.
+ */
+exports.delete = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('DELETE FROM clients WHERE id = $1 RETURNING id', [id]);
 
-            if (!name || !email || !phone || !address) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Name, email, phone, and address are required'
-                });
-            }
-
-            const existingResult = await pool.query('SELECT id FROM clients WHERE email = $1 AND id != $2', [email, id]);
-            if (existingResult.rows.length > 0) {
-                return res.status(409).json({
-                    success: false,
-                    message: 'Another client with this email already exists'
-                });
-            }
-
-            const result = await pool.query(
-                `UPDATE clients 
-                 SET name = $1, company = $2, email = $3, phone = $4, address = $5, updated_at = NOW()
-                 WHERE id = $6
-                 RETURNING *`,
-                [name, company || null, email, phone, address, id]
-            );
-
-            const client = result.rows[0];
-            if (!client) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Client not found'
-                });
-            }
-
-            res.json({
-                success: true,
-                message: 'Client updated successfully',
-                data: client
-            });
-        } catch (error) {
-            console.error('Update client error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to update client'
-            });
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Client not found' });
         }
+
+        res.status(204).send(); // 204 No Content is standard for a successful delete
+    } catch (error) {
+        console.error('Error deleting client:', error);
+        res.status(500).json({ success: false, message: 'Failed to delete client' });
     }
-
-    static async delete(req, res) {
-        try {
-            const { id } = req.params;
-
-            // Check if client has projects
-            const projectCheck = await pool.query('SELECT id FROM projects WHERE client_id = $1 LIMIT 1', [id]);
-            if (projectCheck.rows.length > 0) {
-                return res.status(409).json({
-                    success: false,
-                    message: 'Cannot delete client with active projects. Please reassign or delete projects first.'
-                });
-            }
-
-            const result = await pool.query('DELETE FROM clients WHERE id = $1 RETURNING id', [id]);
-            const client = result.rows[0];
-
-            if (!client) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Client not found'
-                });
-            }
-
-            res.json({
-                success: true,
-                message: 'Client deleted successfully'
-            });
-        } catch (error) {
-            console.error('Delete client error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to delete client'
-            });
-        }
-    }
-}
-
-module.exports = ClientController;
+};
