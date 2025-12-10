@@ -3,6 +3,7 @@ services:
     name: interior-by-ode
     runtime: node
     buildCommand: npm install
+    plan: free
     startCommand: npm start
     rootDir: server
     envVars:
