@@ -7,11 +7,27 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors({
-    origin: process.env.FRONTEND_URL || ['http://localhost:8000', 'http://localhost:5500'],
+// Validate required environment variables
+const requiredEnvVars = ['DATABASE_URL'];
+for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+        console.error(`❌ ${envVar} environment variable is required`);
+        process.exit(1);
+    }
+}
+
+// CORS configuration
+const corsOptions = {
     credentials: true
-}));
+};
+
+if (process.env.NODE_ENV === 'production') {
+    corsOptions.origin = process.env.FRONTEND_URL || 'https://interior-by-ode.onrender.com';
+} else {
+    corsOptions.origin = ['http://localhost:8000', 'http://localhost:5500', 'http://localhost:3000', 'http://localhost:5173'];
+}
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -23,9 +39,18 @@ app.use(session({
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
+
+// Import database connection for health check
+let pool;
+try {
+    pool = require('./config/database');
+} catch (error) {
+    console.warn('⚠️  Database config not found or error loading it:', error.message);
+}
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -47,24 +72,99 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../../client')));
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../../client/index.html'));
-    });
-}
-
-// Health check
-app.get('/health', (req, res) => {
+// Basic route for testing
+app.get('/api', (req, res) => {
     res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
-        service: 'Interior by Ode API'
+        message: 'Interior by Ode API', 
+        version: '1.0.0',
+        status: 'running',
+        environment: process.env.NODE_ENV || 'development'
     });
 });
 
+// Health check with database connection test
+app.get('/health', async (req, res) => {
+    const healthData = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        service: 'Interior by Ode API',
+        environment: process.env.NODE_ENV || 'development',
+        uptime: process.uptime(),
+        memory: process.memoryUsage()
+    };
+
+    try {
+        if (pool) {
+            // Test database connection
+            await pool.query('SELECT 1');
+            healthData.database = 'connected';
+        } else {
+            healthData.database = 'config_not_loaded';
+        }
+        
+        res.status(200).json(healthData);
+    } catch (error) {
+        console.error('Health check database error:', error.message);
+        healthData.status = 'partial';
+        healthData.database = 'disconnected';
+        healthData.error = error.message;
+        res.status(503).json(healthData);
+    }
+});
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+    const clientPath = path.join(__dirname, '../../client');
+    
+    // Check if client directory exists before serving static files
+    const fs = require('fs');
+    if (fs.existsSync(clientPath)) {
+        app.use(express.static(clientPath));
+        app.get('*', (req, res) => {
+            res.sendFile(path.join(clientPath, 'index.html'));
+        });
+        console.log('✅ Serving static files from:', clientPath);
+    } else {
+        console.log('⚠️  Client directory not found, API-only mode');
+    }
+}
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('🔥 Server Error:', err.stack);
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+    res.status(404).json({
+        error: 'Not Found',
+        message: `Route ${req.originalUrl} not found`,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Start server
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    
+    // Log CORS configuration
+    if (process.env.NODE_ENV === 'production') {
+        console.log(`🌐 CORS Origin: ${corsOptions.origin}`);
+    } else {
+        console.log(`🌐 CORS Origins: ${corsOptions.origin.join(', ')}`);
+    }
+    
+    // Log database status
+    if (process.env.DATABASE_URL) {
+        console.log(`💾 Database: Configured (${process.env.DATABASE_URL ? 'URL present' : 'No URL'})`);
+    } else {
+        console.warn('⚠️  Database: DATABASE_URL not set');
+    }
 });
