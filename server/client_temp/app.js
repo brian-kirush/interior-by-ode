@@ -760,6 +760,25 @@ async function generateQuotation() {
     }
 }
 
+/**
+ * Clears all items and resets the calculator form.
+ */
+function clearCalculator() {
+    if (confirm('Are you sure you want to clear all items from the calculator?')) {
+        // Reset the items array in the state
+        state.items = [];
+
+        // Reset the form inputs to their default values
+        document.getElementById('quotationClientSelect').value = '';
+        document.getElementById('taxRate').value = state.taxRate; // Default tax rate
+        document.getElementById('discount').value = state.discount; // Default discount
+
+        // Re-render the calculator to reflect the cleared state
+        renderCalculatorItems();
+
+        showNotification('Calculator has been cleared.');
+    }
+}
 // --- PROJECTS, QUOTATIONS, INVOICES CRUD (DELETE) ---
 
 async function handleDeleteProject(projectId) {
@@ -1012,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addCalculatorItem();
     });
     document.getElementById('generateQuoteBtn')?.addEventListener('click', () => generateQuotation());
+    document.getElementById('clearCalculatorBtn')?.addEventListener('click', clearCalculator);
 
     // --- Start the App ---
     initializeApp();
