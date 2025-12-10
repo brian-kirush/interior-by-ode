@@ -2,10 +2,10 @@ services:
   - type: web
     name: interior-by-ode
     runtime: node
-    buildCommand: npm install  # Now runs from the root directory
+    buildCommand: cd server && npm install  # ✅ Install in server directory
     plan: free
-    startCommand: node src/server.js  # Path to your server from the root
-    rootDir: .  # ✅ The period (.) means "use the repository root"
+    startCommand: cd server && node server.js  # ✅ Start from server directory
+    rootDir: .  # Keep as root since render.yaml is at root
     envVars:
       - key: NODE_ENV
         value: production
@@ -21,3 +21,9 @@ services:
         value: https://interior-by-ode.onrender.com
     healthCheckPath: /health
     autoDeploy: true
+
+databases:
+  - name: interiors_db
+    databaseName: interiors_db
+    user: interiors_user
+    plan: free
