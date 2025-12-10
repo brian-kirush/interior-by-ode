@@ -8,6 +8,9 @@ router.use(requireAuth);
 // Get dashboard stats
 router.get('/stats', async (req, res) => {
     try {
+        let pendingTasks = 0;
+        let clientSatisfaction = 95; // Default placeholder
+
         // Active projects
         const activeProjectsResult = await pool.query(
             "SELECT COUNT(*) as count FROM projects WHERE status NOT IN ('completed', 'submitted')"
@@ -24,11 +27,26 @@ router.get('/stats', async (req, res) => {
             [currentMonth, currentYear]
         );
         
-        // Pending tasks
-        const pendingTasksResult = await pool.query(
-            "SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'"
-        );
-        
+        // Pending tasks (now that the table exists)
+        try {
+            const pendingTasksResult = await pool.query(
+                "SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'"
+            );
+            pendingTasks = parseInt(pendingTasksResult.rows[0].count) || 0;
+        } catch (e) {
+            if (e.code === '42P01') { // '42P01' is undefined_table error in PostgreSQL
+                console.warn('Warning: "tasks" table not found. Defaulting pending tasks to 0.');
+            } else { throw e; }
+        }
+
+        // Client Satisfaction (now that the table exists)
+        try {
+            const satisfactionResult = await pool.query("SELECT AVG(rating) as avg_rating FROM reviews WHERE rating IS NOT NULL");
+            clientSatisfaction = Math.round(satisfactionResult.rows[0].avg_rating * 20) || 95; // Convert 1-5 scale to 0-100
+        } catch (e) {
+            if (e.code === '42P01') { console.warn('Warning: "reviews" table not found. Using default satisfaction value.'); } else { throw e; }
+        }
+
         // Total clients
         const totalClientsResult = await pool.query(
             "SELECT COUNT(*) as count FROM clients"
@@ -40,9 +58,9 @@ router.get('/stats', async (req, res) => {
             data: {
                 activeProjects: parseInt(activeProjectsResult.rows[0].count) || 0,
                 monthlyRevenue: parseFloat(revenueResult.rows[0].total) || 0,
-                pendingTasks: parseInt(pendingTasksResult.rows[0].count) || 0,
+                pendingTasks: pendingTasks,
                 totalClients: parseInt(totalClientsResult.rows[0].count) || 0,
-                clientSatisfaction: 95, // Placeholder
+                clientSatisfaction: clientSatisfaction,
                 trends: {
                     projects: 15,
                     revenue: 12,
