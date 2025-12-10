@@ -929,6 +929,16 @@ document.addEventListener('DOMContentLoaded', () => {
         wrapper.appendChild(itemsTable);
     }
 
+    // Make the clients table horizontally scrollable on mobile
+    const clientsTable = document.getElementById('clientsTableBody')?.parentElement;
+    if (clientsTable) {
+        const wrapper = document.createElement('div');
+        wrapper.style.overflowX = 'auto';
+        clientsTable.parentNode.insertBefore(wrapper, clientsTable);
+        wrapper.appendChild(clientsTable);
+    }
+
+
     // --- Global Listeners ---
     window.addEventListener('orientationchange', () => {
         setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
@@ -1001,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('addItemBtn')?.addEventListener('click', () => {
         addCalculatorItem();
     });
-    document.getElementById('generateQuoteBtn')?.addEventListener('click', generateQuotation);
+    document.getElementById('generateQuoteBtn')?.addEventListener('click', () => generateQuotation());
 
     // --- Start the App ---
     initializeApp();
