@@ -51,12 +51,108 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: true, // MUST be true for production (HTTPS)
+        secure: process.env.NODE_ENV === 'production', // HTTPS in production
         httpOnly: true,
-        sameSite: 'none', // IMPORTANT for cross-origin on Render
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
+
+// Database initialization function
+async function initializeDatabase() {
+    try {
+        console.log('🔧 Initializing database tables...');
+        
+        const tables = [
+            `CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                name VARCHAR(100),
+                role VARCHAR(50) DEFAULT 'user',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            `CREATE TABLE IF NOT EXISTS clients (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                phone VARCHAR(20),
+                address TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            `CREATE TABLE IF NOT EXISTS projects (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(200) NOT NULL,
+                description TEXT,
+                client_id INTEGER REFERENCES clients(id),
+                budget DECIMAL(10, 2),
+                status VARCHAR(50) DEFAULT 'pending',
+                start_date DATE,
+                deadline DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            `CREATE TABLE IF NOT EXISTS tasks (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER REFERENCES projects(id),
+                description TEXT NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                assigned_to VARCHAR(100),
+                priority VARCHAR(20) DEFAULT 'medium',
+                deadline DATE,
+                completed_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            `CREATE TABLE IF NOT EXISTS reviews (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER REFERENCES projects(id),
+                rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+                comment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            `CREATE TABLE IF NOT EXISTS quotations (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER REFERENCES projects(id),
+                amount DECIMAL(10, 2) NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            `CREATE TABLE IF NOT EXISTS invoices (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER REFERENCES projects(id),
+                amount DECIMAL(10, 2) NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                due_date DATE,
+                paid_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`
+        ];
+
+        for (const tableSql of tables) {
+            try {
+                await pool.query(tableSql);
+                console.log(`✅ Table created successfully`);
+            } catch (error) {
+                console.error(`❌ Error creating table:`, error.message);
+            }
+        }
+        
+        console.log('✅ Database tables initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Error initializing database:', error);
+        return false;
+    }
+}
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -118,6 +214,56 @@ app.get('/health', async (req, res) => {
     }
 });
 
+// Database status endpoint
+app.get('/api/db-status', async (req, res) => {
+    try {
+        const tables = ['users', 'clients', 'projects', 'tasks', 'reviews', 'quotations', 'invoices'];
+        const status = {};
+        
+        for (const table of tables) {
+            try {
+                const result = await pool.query(
+                    `SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = $1
+                    )`,
+                    [table]
+                );
+                status[table] = result.rows[0].exists;
+            } catch (error) {
+                status[table] = false;
+            }
+        }
+        
+        res.json({
+            success: true,
+            tables: status,
+            database_url: process.env.DATABASE_URL ? 'configured' : 'not configured',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// Initialize database endpoint (for manual initialization if needed)
+app.post('/api/init-db', async (req, res) => {
+    try {
+        const success = await initializeDatabase();
+        if (success) {
+            res.json({ success: true, message: 'Database initialized successfully' });
+        } else {
+            res.status(500).json({ success: false, message: 'Failed to initialize database' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
     // CORRECTED PATH: From server/src/server.js, go up one level to server/, then into client_temp
@@ -170,7 +316,7 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Reason:', reason);
 });
 
-// Database initialization function
+// Application initialization function
 async function initializeApp() {
     try {
         console.log('🔧 Initializing application...');
@@ -180,6 +326,10 @@ async function initializeApp() {
             console.log('🔍 Testing database connection...');
             await pool.query('SELECT 1');
             console.log('✅ Database connection verified');
+            
+            // Initialize database tables
+            console.log('🔧 Initializing database tables...');
+            await initializeDatabase();
         } else {
             console.warn('⚠️  Database pool not available');
         }
@@ -187,7 +337,8 @@ async function initializeApp() {
         return true;
     } catch (error) {
         console.warn('⚠️  Database connection failed:', error.message);
-        console.warn('   You may need to run: npm run setup-db');
+        console.warn('   The application will start in limited mode.');
+        console.warn('   Visit /api/db-status to check database status.');
         // Don't exit - let the server start anyway
         return false;
     }
@@ -202,6 +353,8 @@ async function startServer() {
             console.log(`🚀 Server running on port ${PORT}`);
             console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
             console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+            console.log(`🔗 Database status: http://localhost:${PORT}/api/db-status`);
+            console.log(`🔗 Initialize DB: POST http://localhost:${PORT}/api/init-db`);
             
             // Log CORS configuration
             if (process.env.NODE_ENV === 'production') {
