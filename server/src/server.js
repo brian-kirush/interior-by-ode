@@ -115,8 +115,8 @@ app.get('/health', async (req, res) => {
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-    // CORRECTED PATH: Go up 3 levels from src/ to reach project root, then into client/
-    const clientPath = path.join(__dirname, '../../../client');
+    // UPDATED PATH: Point to the temporary client directory inside server/
+    const clientPath = path.join(__dirname, '..', 'client_temp');
     
     // Check if client directory exists before serving static files
     if (fs.existsSync(clientPath)) {
@@ -176,7 +176,7 @@ app.listen(PORT, () => {
     
     // Log static file serving status
     if (process.env.NODE_ENV === 'production') {
-        const clientPath = path.join(__dirname, '../../../client');
+        const clientPath = path.join(__dirname, '..', 'client_temp');
         if (fs.existsSync(clientPath)) {
             console.log(`📁 Serving frontend from: ${clientPath}`);
         } else {
