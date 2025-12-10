@@ -579,6 +579,48 @@ async function handleDeleteClient(clientId) {
     }
 }
 
+// --- PROJECTS, QUOTATIONS, INVOICES CRUD (DELETE) ---
+
+async function handleDeleteProject(projectId) {
+    if (!confirm('Are you sure you want to delete this project? This will also delete related quotations and invoices and cannot be undone.')) {
+        return;
+    }
+    try {
+        await apiFetch(`${API_BASE_URL}/projects/${projectId}`, { method: 'DELETE' });
+        showNotification('Project deleted successfully!');
+        loadProjects(); // Refresh the projects list
+    } catch (error) {
+        console.error(`Failed to delete project ${projectId}:`, error);
+    }
+}
+
+async function handleDeleteQuotation(quotationId) {
+    if (!confirm('Are you sure you want to delete this quotation? This cannot be undone.')) {
+        return;
+    }
+    try {
+        await apiFetch(`${API_BASE_URL}/quotations/${quotationId}`, { method: 'DELETE' });
+        showNotification('Quotation deleted successfully!');
+        loadQuotations(); // Refresh the quotations list
+    } catch (error) {
+        console.error(`Failed to delete quotation ${quotationId}:`, error);
+    }
+}
+
+async function handleDeleteInvoice(invoiceId) {
+    if (!confirm('Are you sure you want to delete this invoice? This cannot be undone.')) {
+        return;
+    }
+    try {
+        await apiFetch(`${API_BASE_URL}/invoices/${invoiceId}`, { method: 'DELETE' });
+        showNotification('Invoice deleted successfully!');
+        loadInvoices(); // Refresh the invoices list
+    } catch (error) {
+        console.error(`Failed to delete invoice ${invoiceId}:`, error);
+    }
+}
+
+
 // --- INITIALIZATION & EVENT LISTENERS ---
 
 /**
@@ -624,6 +666,12 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileNavToggle?.addEventListener('click', () => {
         mobileNavMenu.classList.toggle('open');
     });
+    
+    const sidebarToggle = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    sidebarToggle?.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+    });
 
     // --- Modals ---
     setupModal('newProjectModal', 'newProjectBtn', 'cancelNewProjectBtn');
@@ -637,33 +685,32 @@ document.addEventListener('DOMContentLoaded', () => {
             handleEditClient(e.target.closest('.edit-client-btn').dataset.id);
         }
         if (e.target.closest('.delete-client-btn')) {
-            handleDeleteClient(e-target.closest('.delete-client-btn').dataset.id);
+            handleDeleteClient(e.target.closest('.delete-client-btn').dataset.id);
         }
 
         // Project actions
         if (e.target.closest('.edit-project-btn')) {
             // handleEditProject(e.target.closest('.edit-project-btn').dataset.id);
-            showNotification('Edit project functionality is not yet implemented.', 'error');
+            showNotification('Edit project is not yet implemented.', 'error');
         }
-        if (e-target.closest('.delete-project-btn')) {
-            // handleDeleteProject(e.target.closest('.delete-project-btn').dataset.id);
-            showNotification('Delete project functionality is not yet implemented.', 'error');
+        if (e.target.closest('.delete-project-btn')) {
+            handleDeleteProject(e.target.closest('.delete-project-btn').dataset.id);
         }
 
         // Quotation actions
         if (e.target.closest('.view-quotation-btn')) {
-            showNotification('View quotation functionality is not yet implemented.', 'error');
+            showNotification('View quotation is not yet implemented.', 'error');
         }
         if (e.target.closest('.delete-quotation-btn')) {
-            showNotification('Delete quotation functionality is not yet implemented.', 'error');
+            handleDeleteQuotation(e.target.closest('.delete-quotation-btn').dataset.id);
         }
 
         // Invoice actions
         if (e.target.closest('.view-invoice-btn')) {
-            showNotification('View invoice functionality is not yet implemented.', 'error');
+            showNotification('View invoice is not yet implemented.', 'error');
         }
         if (e.target.closest('.delete-invoice-btn')) {
-            showNotification('Delete invoice functionality is not yet implemented.', 'error');
+            handleDeleteInvoice(e.target.closest('.delete-invoice-btn').dataset.id);
         }
     });
 
