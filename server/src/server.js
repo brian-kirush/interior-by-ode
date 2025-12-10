@@ -115,8 +115,8 @@ app.get('/health', async (req, res) => {
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-    // UPDATED PATH: Point to the temporary client directory inside server/
-    const clientPath = path.join(__dirname, '..', 'client_temp');
+    // CORRECTED PATH: From server/src/server.js, go up one level to server/, then into client_temp
+    const clientPath = path.join(__dirname, '../client_temp');
     
     // Check if client directory exists before serving static files
     if (fs.existsSync(clientPath)) {
@@ -154,9 +154,9 @@ app.use('/api/*', (req, res) => {
     });
 });
 
-// Add this at the VERY END of server.js, right before app.listen()
+// Error handling for uncaught exceptions
 process.on('uncaughtException', (error) => {
-    console.error('🔥 UNCAUGHT EXCEPTION:', error);
+    console.error('🔥 UNCAUGHT EXCEPTION:', error.message);
     console.error('Stack:', error.stack);
 });
 
@@ -166,14 +166,35 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Start server
-// Also wrap app.listen() in try-catch
 try {
     app.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
         console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
         console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-        console.log(`🌐 CORS Origin: ${process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : 'development'}`);
-        console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Configured' : 'Not configured'}`);
+        
+        // Log CORS configuration
+        if (process.env.NODE_ENV === 'production') {
+            console.log(`🌐 CORS Origin:`, corsOptions.origin);
+        } else {
+            console.log(`🌐 CORS Origins:`, corsOptions.origin);
+        }
+        
+        // Log database status
+        if (process.env.DATABASE_URL) {
+            console.log(`💾 Database: Configured`);
+        } else {
+            console.warn('⚠️  Database: DATABASE_URL not set');
+        }
+        
+        // Log static file serving status
+        if (process.env.NODE_ENV === 'production') {
+            const clientPath = path.join(__dirname, '../client_temp');
+            if (fs.existsSync(clientPath)) {
+                console.log(`📁 Serving frontend from: ${clientPath}`);
+            } else {
+                console.log(`📁 Frontend not found at: ${clientPath}`);
+            }
+        }
     });
 } catch (error) {
     console.error('🔥 Server failed to start:', error);
