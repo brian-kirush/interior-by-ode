@@ -1,3 +1,6 @@
+// server/src/middleware/validation.js
+
+// Your existing functions
 const validateClient = (req, res, next) => {
     const { name, email, phone, address } = req.body;
     const errors = [];
@@ -46,4 +49,24 @@ const validateProject = (req, res, next) => {
     next();
 };
 
-module.exports = { validateClient, validateProject };
+// NEW: Add the missing validateRequest function
+const validateRequest = (schema) => {
+    return (req, res, next) => {
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Validation failed',
+                errors: [error.details[0].message]
+            });
+        }
+        next();
+    };
+};
+
+// Export all functions
+module.exports = { 
+    validateClient, 
+    validateProject, 
+    validateRequest
+};

@@ -1,7 +1,9 @@
+// server/src/routes/projects.js
 const express = require('express');
 const router = express.Router();
 const projectController = require('../controllers/projectController');
-const { requireAuth, validateRequest } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
+const { validateRequest } = require('../middleware/validation');
 const schemas = require('../middleware/validation');
 
 // Apply auth middleware to all routes
