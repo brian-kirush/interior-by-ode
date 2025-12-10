@@ -30,8 +30,8 @@ const state = {
     allQuotations: [],
     allInvoices: [],
     allClients: [],
-    currentUser: null,
-    csrfToken: null
+    currentUser: null, // Holds logged-in user data
+    isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
 };
 
 // --- UTILITY & HELPER FUNCTIONS ---
@@ -626,6 +626,31 @@ async function handleDeleteInvoice(invoiceId) {
     }
 }
 
+// --- MOBILE & IOS SPECIFIC FIXES ---
+
+function applyMobileFixes() {
+    if (state.isIOS) {
+        document.body.classList.add('is-ios');
+    }
+
+    // Set custom viewport height variable
+    const setVh = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    setVh();
+    window.addEventListener('resize', setVh);
+
+    // Prevent double-tap to zoom
+    let lastTap = 0;
+    document.addEventListener('touchend', (e) => {
+        const currentTime = new Date().getTime();
+        if (currentTime - lastTap < 300) {
+            e.preventDefault();
+        }
+        lastTap = currentTime;
+    });
+}
 
 // --- INITIALIZATION & EVENT LISTENERS ---
 
@@ -634,12 +659,17 @@ async function handleDeleteInvoice(invoiceId) {
  */
 async function initializeApp() {
     const isLoggedIn = await checkSession();
+    applyMobileFixes();
+
     if (isLoggedIn) {
         // Load initial page data if the user is logged in
         navigateToPage(state.currentPage);
         document.querySelector('.app-container').style.opacity = '1';
     } else {
         showLoginScreen();
+        if (state.isIOS) {
+            setTimeout(() => document.getElementById('email')?.focus(), 500);
+        }
     }
 }
 
@@ -656,6 +686,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+    document.querySelectorAll('input.form-control').forEach(input => {
+        input.addEventListener('focus', () => {
+            document.body.style.paddingBottom = '300px';
+            input.scrollIntoView({ block: 'center' });
+        });
+        input.addEventListener('blur', () => {
+            document.body.style.paddingBottom = '0';
+        });
+    });
     document.getElementById('password')?.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') {
             handleLogin();
@@ -682,6 +721,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('sidebar');
     sidebarToggle?.addEventListener('click', () => {
         sidebar.classList.toggle('active');
+    });
+
+    // --- Global Listeners ---
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
     });
 
     // --- Modals ---
