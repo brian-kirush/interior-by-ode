@@ -2,10 +2,10 @@
   "name": "interior-by-ode-backend",
   "version": "1.0.0",
   "description": "Interior Design Management System API",
-  "main": "server.js",
+ "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "setup-db": "node database_setup.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

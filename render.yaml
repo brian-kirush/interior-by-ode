@@ -4,7 +4,7 @@ services:
     runtime: node
     buildCommand: cd server && npm install
     plan: free
-    startCommand: cd server && npm start
+    startCommand: cd server && node src/server.js
     rootDir: .
     envVars:
       - key: NODE_ENV
