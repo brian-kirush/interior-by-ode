@@ -1,35 +1,16 @@
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
-
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
 
 async function setupDatabase() {
-    const client = await pool.connect();
+    const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    });
+
     try {
         console.log('🔧 Setting up database...');
 
-        await client.query('BEGIN');
-
-        // --- Create a trigger function to update `updated_at` timestamps ---
-        await client.query(`
-            CREATE OR REPLACE FUNCTION update_updated_at_column()
-            RETURNS TRIGGER AS $$
-            BEGIN
-                NEW.updated_at = now();
-                RETURN NEW;
-            END;
-            $$ language 'plpgsql';
-        `);
-        console.log('✅ Trigger function for `updated_at` created/updated');
-
-        // Helper to apply the trigger to a table
-        const applyUpdatedAtTrigger = (tableName) => `DROP TRIGGER IF EXISTS set_timestamp ON ${tableName}; CREATE TRIGGER set_timestamp BEFORE UPDATE ON ${tableName} FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();`;
-
-        // --- Create tables ---
+        // Create tables
         const tables = [
             // Users table
             `CREATE TABLE IF NOT EXISTS users (
@@ -70,6 +51,31 @@ async function setupDatabase() {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
 
+            // Project milestones table
+            `CREATE TABLE IF NOT EXISTS project_milestones (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                phase VARCHAR(100) NOT NULL,
+                activity VARCHAR(200) NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                completed_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            // Tasks table
+            `CREATE TABLE IF NOT EXISTS tasks (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                title VARCHAR(200) NOT NULL,
+                description TEXT,
+                status VARCHAR(50) DEFAULT 'pending',
+                priority VARCHAR(50) DEFAULT 'medium',
+                assigned_to VARCHAR(100),
+                due_date DATE,
+                completed_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
             // Quotations table
             `CREATE TABLE IF NOT EXISTS quotations (
                 id SERIAL PRIMARY KEY,
@@ -84,8 +90,7 @@ async function setupDatabase() {
                 status VARCHAR(50) DEFAULT 'draft',
                 valid_until DATE,
                 notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
 
             // Quotation items table
@@ -97,8 +102,7 @@ async function setupDatabase() {
                 quantity DECIMAL(10,2) DEFAULT 1.00,
                 unit_price DECIMAL(12,2) DEFAULT 0.00,
                 total DECIMAL(12,2) DEFAULT 0.00,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
 
             // Invoices table
@@ -118,8 +122,27 @@ async function setupDatabase() {
                 due_date DATE,
                 paid_date DATE NULL,
                 notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            // Invoice items table
+            `CREATE TABLE IF NOT EXISTS invoice_items (
+                id SERIAL PRIMARY KEY,
+                invoice_id INTEGER REFERENCES invoices(id) ON DELETE CASCADE,
+                description TEXT NOT NULL,
+                unit VARCHAR(50),
+                quantity DECIMAL(10,2) DEFAULT 1.00,
+                unit_price DECIMAL(12,2) DEFAULT 0.00,
+                total DECIMAL(12,2) DEFAULT 0.00,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            // Team notes table
+            `CREATE TABLE IF NOT EXISTS team_notes (
+                id SERIAL PRIMARY KEY,
+                note_text TEXT NOT NULL,
+                author VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
 
             // Settings table
@@ -129,24 +152,39 @@ async function setupDatabase() {
                 setting_value TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )`,
-
-            // Apply triggers to tables with `updated_at`
-            applyUpdatedAtTrigger('users'),
-            applyUpdatedAtTrigger('clients'),
-            applyUpdatedAtTrigger('projects'),
-            applyUpdatedAtTrigger('quotations'),
-            applyUpdatedAtTrigger('quotation_items'),
-            applyUpdatedAtTrigger('invoices'),
-            applyUpdatedAtTrigger('settings')
+            )`
         ];
 
         for (const tableSql of tables) {
-            await client.query(tableSql);
+            await pool.query(tableSql);
         }
         console.log('✅ Tables checked/created');
 
-        // --- Insert default settings ---
+        // Create updated_at trigger function
+        await pool.query(`
+            CREATE OR REPLACE FUNCTION update_updated_at_column()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = CURRENT_TIMESTAMP;
+                RETURN NEW;
+            END;
+            $$ language 'plpgsql'
+        `);
+
+        // Apply trigger to tables with updated_at column
+        const tablesWithUpdatedAt = ['users', 'clients', 'projects', 'settings'];
+        for (const tableName of tablesWithUpdatedAt) {
+            await pool.query(`
+                DROP TRIGGER IF EXISTS update_${tableName}_updated_at ON ${tableName};
+                CREATE TRIGGER update_${tableName}_updated_at
+                BEFORE UPDATE ON ${tableName}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_updated_at_column()
+            `);
+        }
+        console.log('✅ Trigger function for updated_at created/updated');
+
+        // Insert default settings
         const defaultSettings = [
             ['company_name', 'Interiors by Ode'],
             ['company_address', 'Nairobi, Kenya'],
@@ -161,7 +199,7 @@ async function setupDatabase() {
         ];
 
         for (const [key, value] of defaultSettings) {
-            await client.query(
+            await pool.query(
                 `INSERT INTO settings (setting_key, setting_value) 
                  VALUES ($1, $2) 
                  ON CONFLICT (setting_key) DO NOTHING`,
@@ -170,34 +208,31 @@ async function setupDatabase() {
         }
         console.log('✅ Default settings inserted');
 
-        // --- Insert default admin user ---
-        const existingUser = await client.query(
+        // Insert default admin user
+        const existingUser = await pool.query(
             "SELECT COUNT(*) FROM users WHERE email = 'admin@interiorsbyode.com'"
         );
 
         if (parseInt(existingUser.rows[0].count) === 0) {
-            const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'ode';
-            const hashedPassword = await bcrypt.hash(adminPassword, 10);
-            await client.query(
+            const hashedPassword = await bcrypt.hash('ode', 10);
+            await pool.query(
                 `INSERT INTO users (name, email, password_hash, role) 
                  VALUES ($1, $2, $3, $4)`,
                 ['Administrator', 'admin@interiorsbyode.com', hashedPassword, 'admin']
             );
             console.log('✅ Default admin user created');
             console.log('   Email: admin@interiorsbyode.com');
-            console.log(`   Password: ${adminPassword}`);
+            console.log('   Password: ode');
         }
 
-        await client.query('COMMIT');
         console.log('🎉 Database setup completed successfully!');
-
+        return { success: true };
     } catch (error) {
-        await client.query('ROLLBACK');
         console.error('❌ Database setup error:', error.message);
-        throw error; // Re-throw error to be caught by the caller
+        throw error;
     } finally {
-        client.release();
+        await pool.end();
     }
 }
 
-module.exports = pool; // Export the pool directly
+module.exports = { setupDatabase };

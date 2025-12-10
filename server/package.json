@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "setup-db": "node database_setup.js",
+    "setup-db": "node scripts/setup-db.js",
+    "check-db": "node scripts/check-db.js",
+    "reset-db": "npm run setup-db -- --force",
+    "deploy": "npm run setup-db && npm start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

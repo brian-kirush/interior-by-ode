@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' }); // Adjust path to .env if necessary
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -200,4 +200,16 @@ async function setupDatabase() {
     }
 }
 
-module.exports = pool; // Export the pool directly
+setupDatabase()
+    .then(() => {
+        console.log('Disconnecting from database...');
+        pool.end();
+        process.exit(0);
+    })
+    .catch((error) => {
+        console.error('An error occurred during database setup:', error);
+        pool.end();
+        process.exit(1);
+    });
+
+module.exports = pool; // Export the pool for other modules to use

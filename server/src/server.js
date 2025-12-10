@@ -165,38 +165,68 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Reason:', reason);
 });
 
-// Start server
-try {
-    app.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-        console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+// Database initialization function
+async function initializeApp() {
+    try {
+        console.log('🔧 Initializing application...');
         
-        // Log CORS configuration
-        if (process.env.NODE_ENV === 'production') {
-            console.log(`🌐 CORS Origin:`, corsOptions.origin);
+        // Verify database connection
+        if (pool) {
+            console.log('🔍 Testing database connection...');
+            await pool.query('SELECT 1');
+            console.log('✅ Database connection verified');
         } else {
-            console.log(`🌐 CORS Origins:`, corsOptions.origin);
+            console.warn('⚠️  Database pool not available');
         }
         
-        // Log database status
-        if (process.env.DATABASE_URL) {
-            console.log(`💾 Database: Configured`);
-        } else {
-            console.warn('⚠️  Database: DATABASE_URL not set');
-        }
-        
-        // Log static file serving status
-        if (process.env.NODE_ENV === 'production') {
-            const clientPath = path.join(__dirname, '../client_temp');
-            if (fs.existsSync(clientPath)) {
-                console.log(`📁 Serving frontend from: ${clientPath}`);
-            } else {
-                console.log(`📁 Frontend not found at: ${clientPath}`);
-            }
-        }
-    });
-} catch (error) {
-    console.error('🔥 Server failed to start:', error);
-    console.error('Stack:', error.stack);
+        return true;
+    } catch (error) {
+        console.warn('⚠️  Database connection failed:', error.message);
+        console.warn('   You may need to run: npm run setup-db');
+        // Don't exit - let the server start anyway
+        return false;
+    }
 }
+
+// Start server
+async function startServer() {
+    try {
+        await initializeApp();
+        
+        app.listen(PORT, () => {
+            console.log(`🚀 Server running on port ${PORT}`);
+            console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+            
+            // Log CORS configuration
+            if (process.env.NODE_ENV === 'production') {
+                console.log(`🌐 CORS Origin:`, corsOptions.origin);
+            } else {
+                console.log(`🌐 CORS Origins:`, corsOptions.origin);
+            }
+            
+            // Log database status
+            if (process.env.DATABASE_URL) {
+                console.log(`💾 Database: Configured`);
+            } else {
+                console.warn('⚠️  Database: DATABASE_URL not set');
+            }
+            
+            // Log static file serving status
+            if (process.env.NODE_ENV === 'production') {
+                const clientPath = path.join(__dirname, '../client_temp');
+                if (fs.existsSync(clientPath)) {
+                    console.log(`📁 Serving frontend from: ${clientPath}`);
+                } else {
+                    console.log(`📁 Frontend not found at: ${clientPath}`);
+                }
+            }
+        });
+    } catch (error) {
+        console.error('🔥 Failed to start server:', error);
+        console.error('Stack:', error.stack);
+        process.exit(1);
+    }
+}
+
+startServer();
