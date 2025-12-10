@@ -808,6 +808,12 @@ function applyMobileFixes() {
         document.body.classList.add('is-ios');
     }
 
+    // Hide the floating mobile menu button as it's not being used.
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    if (mobileMenuBtn) {
+        mobileMenuBtn.style.display = 'none';
+    }
+
     // Set custom viewport height variable
     const setVh = () => {
         const vh = window.innerHeight * 0.01;
@@ -905,11 +911,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileNavMenu.classList.toggle('open');
     });
     
-    const sidebarToggle = document.getElementById('mobileMenuBtn');
-    const sidebar = document.getElementById('sidebar');
-    sidebarToggle?.addEventListener('click', () => {
-        sidebar.classList.toggle('active');
-    });
+    // const sidebarToggle = document.getElementById('mobileMenuBtn');
+    // const sidebar = document.getElementById('sidebar');
+    // sidebarToggle?.addEventListener('click', () => {
+    //     sidebar.classList.toggle('active');
+    // });
 
     // --- Global Listeners ---
     window.addEventListener('orientationchange', () => {
