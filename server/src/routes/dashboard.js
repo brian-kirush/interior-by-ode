@@ -16,7 +16,7 @@ router.get('/stats', async (req, res) => {
         // Monthly revenue
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
-        const revenueResult = await query(
+        const revenueResult = await pool.query(
             `SELECT SUM(budget) as total FROM projects
              WHERE status = 'completed' 
              AND EXTRACT(MONTH FROM updated_at) = $1 

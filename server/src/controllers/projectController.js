@@ -1,9 +1,9 @@
-const { query } = require('../config/database');
+const pool = require('../config/database');
 
 class ProjectController {
     async getAllProjects(req, res) {
         try {
-            const result = await query(`
+            const result = await pool.query(`
                 SELECT p.*, c.name as client_name, c.company as client_company,
                        (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id) as task_count
                 FROM projects p
@@ -29,7 +29,7 @@ class ProjectController {
         try {
             const { id } = req.params;
             
-            const projectResult = await query(`
+            const projectResult = await pool.query(`
                 SELECT p.*, c.name as client_name, c.email as client_email, 
                        c.phone as client_phone, c.address as client_address,
                        c.company as client_company
@@ -47,12 +47,12 @@ class ProjectController {
 
             const project = projectResult.rows[0];
 
-            const tasksResult = await query(
+            const tasksResult = await pool.query(
                 'SELECT * FROM tasks WHERE project_id = $1 ORDER BY due_date ASC',
                 [id]
             );
 
-            const milestonesResult = await query(
+            const milestonesResult = await pool.query(
                 'SELECT * FROM project_milestones WHERE project_id = $1 ORDER BY created_at ASC',
                 [id]
             );
@@ -85,7 +85,7 @@ class ProjectController {
                 });
             }
 
-            const result = await query(
+            const result = await pool.query(
                 `INSERT INTO projects (client_id, name, description, budget, status) 
                  VALUES ($1, $2, $3, $4, $5) 
                  RETURNING id, name, description, budget, status, client_id, created_at`,
@@ -111,7 +111,7 @@ class ProjectController {
             ];
 
             for (const [phase, activity] of milestones) {
-                await query(
+                await pool.query(
                     'INSERT INTO project_milestones (project_id, phase, activity) VALUES ($1, $2, $3)',
                     [project.id, phase, activity]
                 );
@@ -182,7 +182,7 @@ class ProjectController {
                 RETURNING id, name, description, status, budget, progress, notes, updated_at
             `;
 
-            const result = await query(queryStr, values);
+            const result = await pool.query(queryStr, values);
 
             if (result.rows.length === 0) {
                 return res.status(404).json({
@@ -209,7 +209,7 @@ class ProjectController {
         try {
             const { id } = req.params;
 
-            const result = await query(
+            const result = await pool.query(
                 'DELETE FROM projects WHERE id = $1 RETURNING id',
                 [id]
             );

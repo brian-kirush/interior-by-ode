@@ -585,6 +585,110 @@ async function handleDeleteClient(clientId) {
     }
 }
 
+// --- CALCULATOR & QUOTATION LOGIC ---
+
+function addCalculatorItem() {
+    const item = {
+        id: `item-${Date.now()}`,
+        description: '',
+        unit: 'pcs',
+        quantity: 1,
+        unit_price: 0,
+    };
+    state.items.push(item);
+    renderCalculatorItems();
+}
+
+function renderCalculatorItems() {
+    const tableBody = document.getElementById('itemsTableBody');
+    tableBody.innerHTML = '';
+    state.items.forEach(item => {
+        const row = document.createElement('tr');
+        row.id = item.id;
+        row.innerHTML = `
+            <td><input type="text" class="form-control" data-field="description" value="${item.description}" placeholder="Item description"></td>
+            <td><input type="text" class="form-control" data-field="unit" value="${item.unit}"></td>
+            <td><input type="number" class="form-control" data-field="quantity" value="${item.quantity}" min="0"></td>
+            <td><input type="number" class="form-control" data-field="unit_price" value="${item.unit_price}" min="0"></td>
+            <td class="item-total">${formatCurrency(item.quantity * item.unit_price)}</td>
+            <td><button class="btn btn-sm btn-danger remove-item-btn"><i class="fas fa-trash"></i></button></td>
+        `;
+        tableBody.appendChild(row);
+    });
+    updateCalculatorSummary();
+}
+
+function updateCalculatorItem(itemId, field, value) {
+    const item = state.items.find(i => i.id === itemId);
+    if (!item) return;
+
+    if (field === 'quantity' || field === 'unit_price') {
+        item[field] = parseFloat(value) || 0;
+    } else {
+        item[field] = value;
+    }
+
+    const row = document.getElementById(itemId);
+    if (row) {
+        const totalCell = row.querySelector('.item-total');
+        totalCell.textContent = formatCurrency(item.quantity * item.unit_price);
+    }
+    updateCalculatorSummary();
+}
+
+function removeCalculatorItem(itemId) {
+    state.items = state.items.filter(i => i.id !== itemId);
+    renderCalculatorItems();
+}
+
+function updateCalculatorSummary() {
+    const subtotal = state.items.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
+    const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+    const discountPercent = parseFloat(document.getElementById('discount').value) || 0;
+
+    const taxAmount = subtotal * (taxRate / 100);
+    const discountAmount = subtotal * (discountPercent / 100);
+    const total = subtotal + taxAmount - discountAmount;
+
+    document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+    document.getElementById('taxRateDisplay').textContent = taxRate;
+    document.getElementById('taxAmount').textContent = formatCurrency(taxAmount);
+    document.getElementById('discountDisplay').textContent = discountPercent;
+    document.getElementById('discountAmount').textContent = `- ${formatCurrency(discountAmount)}`;
+    document.getElementById('totalAmount').textContent = formatCurrency(total);
+}
+
+async function generateQuotation() {
+    const quotationData = {
+        client_id: document.getElementById('quotationClientSelect').value,
+        items: state.items.map(item => ({
+            description: item.description,
+            unit: item.unit,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.quantity * item.unit_price,
+        })),
+        tax_rate: parseFloat(document.getElementById('taxRate').value) || 0,
+        discount_amount: parseFloat(document.getElementById('discountAmount').textContent.replace(/[^0-9.]/g, '')) || 0,
+        subtotal: parseFloat(document.getElementById('subtotal').textContent.replace(/[^0-9.]/g, '')) || 0,
+        total: parseFloat(document.getElementById('totalAmount').textContent.replace(/[^0-9.]/g, '')) || 0,
+    };
+
+    if (!quotationData.client_id) {
+        return showNotification('Please select a client.', 'error');
+    }
+
+    try {
+        const result = await apiFetch(`${API_BASE_URL}/quotations`, { method: 'POST', body: JSON.stringify(quotationData) });
+        if (result.success) {
+            showNotification('Quotation created successfully!');
+            navigateToPage('quotations');
+        }
+    } catch (error) {
+        console.error('Failed to generate quotation:', error);
+    }
+}
+
 // --- PROJECTS, QUOTATIONS, INVOICES CRUD (DELETE) ---
 
 async function handleDeleteProject(projectId) {
@@ -745,8 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Project actions
         if (e.target.closest('.edit-project-btn')) {
-            // handleEditProject(e.target.closest('.edit-project-btn').dataset.id);
-            showNotification('Edit project is not yet implemented.', 'error');
+            handleEditProject(e.target.closest('.edit-project-btn').dataset.id);
         }
         if (e.target.closest('.delete-project-btn')) {
             handleDeleteProject(e.target.closest('.delete-project-btn').dataset.id);
@@ -767,6 +870,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.delete-invoice-btn')) {
             handleDeleteInvoice(e.target.closest('.delete-invoice-btn').dataset.id);
         }
+
+        // Calculator actions
+        if (e.target.closest('.remove-item-btn')) {
+            removeCalculatorItem(e.target.closest('tr').id);
+        }
+    });
+
+    document.getElementById('itemsTableBody')?.addEventListener('input', (e) => {
+        const target = e.target;
+        updateCalculatorItem(target.closest('tr').id, target.dataset.field, target.value);
     });
 
     // --- Form Submissions ---
@@ -776,14 +889,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Calculator Page ---
     document.getElementById('addItemBtn')?.addEventListener('click', () => {
-        showNotification('Add item functionality is not yet implemented.', 'error');
+        addCalculatorItem();
     });
-    document.getElementById('clearAllBtn')?.addEventListener('click', () => {
-        showNotification('Clear all functionality is not yet implemented.', 'error');
-    });
-    document.getElementById('generateQuoteBtn')?.addEventListener('click', () => {
-        showNotification('Generate quote functionality is not yet implemented.', 'error');
-    });
+    document.getElementById('generateQuoteBtn')?.addEventListener('click', generateQuotation);
 
     // --- Start the App ---
     initializeApp();

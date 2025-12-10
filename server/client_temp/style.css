@@ -1,0 +1,20 @@
+body {
+    padding: 40px;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0; /* Good practice to reset default margin */
+}
+h1 {
+    color: green;
+}
+code {
+    background-color: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+/* Make padding smaller on mobile to prevent overflow */
+@media (max-width: 600px) {
+    body {
+        padding: 20px;
+    }
+}
