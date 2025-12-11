@@ -14,6 +14,7 @@ const projectRoutes = require('./routes/projects');
 const quotationRoutes = require('./routes/quotations');
 const settingsRoutes = require('./routes/settings');
 const taskRoutes = require('./routes/tasks');
+const debugRoutes = require('./routes/debug');
 const logger = require('./controllers/logger');
 const globalErrorHandler = require('./controllers/errorController');
 
@@ -76,6 +77,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/debug', debugRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
