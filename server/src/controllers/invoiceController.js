@@ -2,7 +2,7 @@
 const pool = require('../config/database');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-const { generateInvoicePdf } = require('../utils/generateInvoicePDF');
+const { generateInvoicePdf } = require('./generateInvoicePDF.js');
 
 const InvoiceController = {
     // Get all invoices
