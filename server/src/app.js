@@ -30,11 +30,13 @@ app.use(cors({
 app.use(express.json());
 
 // Session middleware
+const sessionStore = new pgSession({
+  pool: pool,
+  tableName: 'session'
+});
+
 app.use(session({
-  store: new pgSession({
-    pool: pool,
-    tableName: 'session'
-  }),
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
@@ -42,7 +44,8 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+  },
+  name: 'connect.sid'
 }));
 
 // Serve static files from client_temp directory
