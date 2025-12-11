@@ -54,7 +54,7 @@ class AuthController {
         });
     }
 
-    static checkSession(req, res) {
+    static checkSession = catchAsync(async (req, res, next) => {
         if (req.session.loggedIn) {
             res.json({
                 success: true,
@@ -69,7 +69,7 @@ class AuthController {
         } else {
             return next(new AppError('No active session', 401));
         }
-    }
+    });
 }
 
 module.exports = AuthController;
