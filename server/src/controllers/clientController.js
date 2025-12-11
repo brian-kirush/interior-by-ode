@@ -1,102 +1,108 @@
-const pool = require('../config/database');
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
+// Client controller
+const Client = require('../models/clientModel'); // We'll create this next
 
-/**
- * Gets all clients from the database.
- */
-exports.getAll = catchAsync(async (req, res, next) => {
-    const { sort = 'name', direction = 'asc', filter = '' } = req.query;
-
-    // Validate sort column to prevent SQL injection
-    const allowedSortColumns = ['id', 'name', 'email', 'phone', 'company'];
-    if (!allowedSortColumns.includes(sort)) {
-        return next(new AppError('Invalid sort column.', 400));
-    }
-    const sortDirection = direction.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
-
-    let query = `SELECT * FROM clients`;
-    const queryParams = [];
-
-    if (filter) {
-        query += ` WHERE name ILIKE $1 OR email ILIKE $1 OR company ILIKE $1`;
-        queryParams.push(`%${filter}%`);
-    }
-
-    query += ` ORDER BY ${sort} ${sortDirection}`;
-
-    const result = await pool.query(query, queryParams);
-
+exports.getAllClients = async (req, res) => {
+  try {
+    const clients = await Client.find().sort({ createdAt: -1 });
     res.json({
-        success: true,
-        message: 'Clients retrieved successfully',
-        data: result.rows
+      success: true,
+      count: clients.length,
+      data: clients
     });
-});
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
 
-/**
- * Gets a single client by their ID.
- */
-exports.getById = catchAsync(async (req, res, next) => {
-    const { id } = req.params;
-    const result = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
-
-    if (result.rows.length === 0) {
-        return next(new AppError('Client not found.', 404));
+exports.getClient = async (req, res) => {
+  try {
+    const client = await Client.findById(req.params.id);
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
     }
-
     res.json({
-        success: true,
-        message: 'Client retrieved successfully',
-        data: result.rows[0]
+      success: true,
+      data: client
     });
-});
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
 
-/**
- * Creates a new client.
- */
-exports.create = catchAsync(async (req, res) => {
-    const { name, email, phone, address, company } = req.body;
-    const result = await pool.query(
-        'INSERT INTO clients (name, email, phone, address, company) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [name, email, phone, address, company]
-    );
-
+exports.createClient = async (req, res) => {
+  try {
+    const client = new Client(req.body);
+    await client.save();
     res.status(201).json({
-        success: true,
-        message: 'Client created successfully',
-        data: result.rows[0]
+      success: true,
+      message: 'Client created successfully',
+      data: client
     });
-});
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Error creating client',
+      error: error.message
+    });
+  }
+};
 
-/**
- * Updates an existing client.
- */
-exports.update = catchAsync(async (req, res, next) => {
-    const { id } = req.params;
-    const { name, email, phone, address, company } = req.body;
-    const result = await pool.query(
-        'UPDATE clients SET name = $1, email = $2, phone = $3, address = $4, company = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *',
-        [name, email, phone, address, company, id]
+exports.updateClient = async (req, res) => {
+  try {
+    const client = await Client.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
     );
-    if (result.rows.length === 0) {
-        return next(new AppError('Client not found.', 404));
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
     }
     res.json({
-        success: true,
-        message: 'Client updated successfully',
-        data: result.rows[0]
+      success: true,
+      message: 'Client updated successfully',
+      data: client
     });
-});
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Error updating client',
+      error: error.message
+    });
+  }
+};
 
-/**
- * Deletes a client.
- */
-exports.delete = catchAsync(async (req, res, next) => {
-    const { id } = req.params;
-    const result = await pool.query('DELETE FROM clients WHERE id = $1 RETURNING id', [id]);
-    if (result.rows.length === 0) {
-        return next(new AppError('Client not found.', 404));
+exports.deleteClient = async (req, res) => {
+  try {
+    const client = await Client.findByIdAndDelete(req.params.id);
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
     }
-    res.status(204).send(); // 204 No Content is standard for a successful delete
-});
+    res.json({
+      success: true,
+      message: 'Client deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};

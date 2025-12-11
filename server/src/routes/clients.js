@@ -1,26 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const ClientController = require('../controllers/clientController');
+const clientController = require('../controllers/clientController');
 const { requireAuth } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
-const schemas = require('../schemas/clientSchema');
+const clientSchemas = require('../schemas/clientSchema');
 
 // Apply auth middleware to all routes
 router.use(requireAuth);
 
-// Get all clients
-router.get('/', ClientController.getAll);
+// GET all clients
+router.get('/', clientController.getAllClients);
 
-// Get single client
-router.get('/:id', ClientController.getById);
+// GET single client
+router.get('/:id', clientController.getClient);
 
-// Create client
-router.post('/', validateRequest(schemas.client), ClientController.create);
+// POST create client
+router.post('/',
+  validateRequest(clientSchemas.createClient),
+  clientController.createClient
+);
 
-// Update client
-router.put('/:id', validateRequest(schemas.client), ClientController.update);
+// PUT update client
+router.put('/:id',
+  validateRequest(clientSchemas.updateClient),
+  clientController.updateClient
+);
 
-// Delete client
-router.delete('/:id', ClientController.delete);
+// DELETE client
+router.delete('/:id', clientController.deleteClient);
 
 module.exports = router;
