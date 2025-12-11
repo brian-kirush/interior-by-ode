@@ -18,6 +18,11 @@ class AuthController {
             return next(new AppError('Invalid credentials', 401));
         }
 
+        // Ensure session middleware is available
+        if (!req.session) {
+            return next(new AppError('Session store unavailable', 500));
+        }
+
         // Set session
         req.session.userId = user.id;
         req.session.userName = user.name;
@@ -39,6 +44,10 @@ class AuthController {
     });
 
     static logout = catchAsync(async (req, res, next) => {
+        if (!req.session || typeof req.session.destroy !== 'function') {
+            return next(new AppError('Session store unavailable', 500));
+        }
+
         req.session.destroy((err) => {
             if (err) {
                 return next(new AppError('Logout failed', 500));
@@ -52,6 +61,10 @@ class AuthController {
     });
 
     static checkSession = catchAsync(async (req, res, next) => {
+        if (!req.session) {
+            return next(new AppError('Session store unavailable', 500));
+        }
+
         if (req.session.loggedIn) {
             res.json({
                 success: true,

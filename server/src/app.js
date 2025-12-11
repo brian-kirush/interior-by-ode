@@ -30,14 +30,21 @@ app.use(cors({
 app.use(express.json());
 
 // Session middleware
-const sessionStore = new pgSession({
-  pool: pool,
-  tableName: 'session',
-  createTableIfMissing: true // Auto-create table if it doesn't exist
-});
+let sessionStore;
+try {
+  sessionStore = new pgSession({
+    pool: pool,
+    tableName: 'session',
+    createTableIfMissing: true // Auto-create table if it doesn't exist
+  });
+} catch (err) {
+  // If initialization fails (e.g. DB temporarily unavailable), log and continue
+  logger.error('Failed to initialize PostgreSQL session store, falling back to MemoryStore', err);
+  sessionStore = null;
+}
 
-app.use(session({
-  store: sessionStore,
+const sessionOptions = {
+  store: sessionStore || new session.MemoryStore(),
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
@@ -47,7 +54,9 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   },
   name: 'connect.sid'
-}));
+};
+
+app.use(session(sessionOptions));
 
 // Serve static files from client_temp directory
 app.use(express.static(path.join(__dirname, '../client_temp')));
