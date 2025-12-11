@@ -154,13 +154,7 @@ async function setupDatabase() {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
 
-            // Session table for express-session with PostgreSQL store
-            `CREATE TABLE IF NOT EXISTS "session" (
-                "sid" varchar NOT NULL COLLATE "default",
-                "sess" json NOT NULL,
-                "expire" timestamp(6) NOT NULL,
-                PRIMARY KEY ("sid")
-            )`
+            // Note: session table is managed by connect-pg-simple; do not create it here to avoid conflicts
         ];
 
         for (const tableSql of tables) {
