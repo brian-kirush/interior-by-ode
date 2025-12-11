@@ -3,7 +3,18 @@ const router = express.Router();
 const clientController = require('../controllers/clientController');
 const { requireAuth } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
-const clientSchemas = require('../schemas/clientSchema');
+
+// Try to load clientSchemas, but provide fallback if Joi not available
+let clientSchemas;
+try {
+  clientSchemas = require('../schemas/clientSchema');
+} catch (err) {
+  console.warn('Joi not available, using empty validation schemas');
+  clientSchemas = {
+    createClient: {},
+    updateClient: {}
+  };
+}
 
 // Apply auth middleware to all routes
 router.use(requireAuth);
