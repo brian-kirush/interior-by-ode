@@ -78,3 +78,72 @@ exports.forceRecreateSessionTable = catchAsync(async (req, res, next) => {
     client.release();
   }
 });
+
+/**
+ * Force recreate the session table given a session token from login JSON.
+ * Body: { session: '<session-id>' }
+ * Validates that the session belongs to an admin by reading the session row's JSON.
+ */
+exports.forceRecreateSessionTableWithToken = catchAsync(async (req, res, next) => {
+  const { session: sessionId } = req.body || {};
+  if (!sessionId) {
+    return next(new AppError('Session id required in body as { session: "<id>" }', 400));
+  }
+
+  // First ensure session table exists
+  const check = await pool.query("SELECT to_regclass('public.session') AS exists");
+  const exists = check.rows[0].exists;
+  if (!exists) {
+    return next(new AppError('Session table does not exist on the database. Please use browser-based admin access, or run setup repair.', 400));
+  }
+
+  // Validate provided session id belongs to an admin session
+  const sessionRow = await pool.query('SELECT sess FROM public.session WHERE sid = $1', [sessionId]);
+  if (!sessionRow.rows.length) {
+    return next(new AppError('Session not found or expired', 403));
+  }
+
+  const sess = sessionRow.rows[0].sess;
+  // sess is JSON column (parsed by pg); expected keys: userRole, loggedIn
+  if (!sess || !sess.loggedIn || sess.userRole !== 'admin') {
+    return next(new AppError('Provided session is not an admin session', 403));
+  }
+
+  // Proceed to perform the same force recreate logic under a dedicated client
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const check2 = await client.query("SELECT to_regclass('public.session') AS exists");
+    const exists2 = check2.rows[0].exists;
+    let renamedTo = null;
+
+    if (exists2) {
+      const now = new Date();
+      const ts = now.toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
+      const backupName = `session_bak_${ts}`;
+      await client.query(`ALTER TABLE public.session RENAME TO "${backupName}"`);
+      renamedTo = backupName;
+    }
+
+    await client.query(`CREATE TABLE IF NOT EXISTS public.session (
+      sid varchar NOT NULL,
+      sess json NOT NULL,
+      expire timestamp(6) NOT NULL,
+      PRIMARY KEY (sid)
+    )`);
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: 'Session table force-recreated via token',
+      renamedTo,
+      created: true
+    });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    return next(new AppError('Failed to force recreate session table: ' + err.message, 500));
+  } finally {
+    client.release();
+  }
+});
