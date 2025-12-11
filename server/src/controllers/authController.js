@@ -38,13 +38,10 @@ class AuthController {
         });
     });
 
-    static logout(req, res) {
+    static logout = catchAsync(async (req, res, next) => {
         req.session.destroy((err) => {
             if (err) {
-                return res.status(500).json({
-                    success: false,
-                    message: 'Logout failed'
-                });
+                return next(new AppError('Logout failed', 500));
             }
             res.clearCookie('connect.sid');
             res.json({
@@ -52,7 +49,7 @@ class AuthController {
                 message: 'Logout successful'
             });
         });
-    }
+    });
 
     static checkSession = catchAsync(async (req, res, next) => {
         if (req.session.loggedIn) {

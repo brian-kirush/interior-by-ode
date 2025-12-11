@@ -3,6 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const pool = require('./config/database');
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clients');
 const dashboardRoutes = require('./routes/dashboard');
@@ -19,9 +22,28 @@ const app = express();
 
 // Middleware
 // Enable Cross-Origin Resource Sharing
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? 'https://interior-by-ode.onrender.com' : 'http://localhost:3000',
+  credentials: true
+}));
 // Parse incoming JSON requests
 app.use(express.json());
+
+// Session middleware
+app.use(session({
+  store: new pgSession({
+    pool: pool,
+    tableName: 'session'
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // Serve static files from client_temp directory
 app.use(express.static(path.join(__dirname, '../client_temp')));
