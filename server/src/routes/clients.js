@@ -14,7 +14,7 @@ router.get('/', ClientController.getAll);
 router.get('/:id', ClientController.getById);
 
 // Create client
-router.post('/', validateClient, ClientController.create);
+router.post('/', validateClient, ClientController.createClient);
 
 // Update client
 router.put('/:id', validateClient, ClientController.update);
