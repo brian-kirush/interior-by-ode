@@ -4,6 +4,30 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const { generateInvoicePdf } = require('./generateInvoicePDF.js');
 
+/**
+ * Fetches a single invoice and its items by ID.
+ * @param {string} id - The ID of the invoice to fetch.
+ * @returns {Promise<object|null>} The full invoice object or null if not found.
+ */
+const getFullInvoiceById = async (id) => {
+    const invoiceResult = await pool.query(`
+        SELECT i.*, c.name as client_name, c.email as client_email, 
+               c.phone as client_phone, c.address as client_address
+        FROM invoices i
+        LEFT JOIN clients c ON i.client_id = c.id
+        WHERE i.id = $1
+    `, [id]);
+
+    if (invoiceResult.rows.length === 0) {
+        return null;
+    }
+
+    const invoice = invoiceResult.rows[0];
+    const itemsResult = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
+    invoice.items = itemsResult.rows;
+    return invoice;
+};
+
 const InvoiceController = {
     // Get all invoices
     getAll: catchAsync(async (req, res, next) => {
@@ -23,23 +47,11 @@ const InvoiceController = {
     // Get single invoice by ID
     getById: catchAsync(async (req, res, next) => {
         const { id } = req.params;
-        const invoiceResult = await pool.query(`
-            SELECT i.*, c.name as client_name, c.email as client_email, 
-                   c.phone as client_phone, c.address as client_address
-            FROM invoices i
-            LEFT JOIN clients c ON i.client_id = c.id
-            WHERE i.id = $1
-        `, [id]);
+        const invoice = await getFullInvoiceById(id);
 
-        if (invoiceResult.rows.length === 0) {
+        if (!invoice) {
             return next(new AppError('Invoice not found', 404));
         }
-
-        const invoice = invoiceResult.rows[0];
-
-        // Assuming an `invoice_items` table exists
-        const itemsResult = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
-        invoice.items = itemsResult.rows;
 
         res.json({ success: true, message: `Invoice ${id} retrieved`, data: invoice });
     }),
@@ -125,21 +137,11 @@ const InvoiceController = {
     // Download an invoice as a PDF
     download: catchAsync(async (req, res, next) => {
         const { id } = req.params;
-        const invoiceResult = await pool.query(`
-            SELECT i.*, c.name as client_name, c.email as client_email, 
-                   c.phone as client_phone, c.address as client_address
-            FROM invoices i
-            LEFT JOIN clients c ON i.client_id = c.id
-            WHERE i.id = $1
-        `, [id]);
+        const invoice = await getFullInvoiceById(id);
 
-        if (invoiceResult.rows.length === 0) {
+        if (!invoice) {
             return next(new AppError('Invoice not found', 404));
         }
-
-        const invoice = invoiceResult.rows[0];
-        const itemsResult = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
-        invoice.items = itemsResult.rows;
 
         const filename = `Invoice-${invoice.invoice_number}.pdf`;
         res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
