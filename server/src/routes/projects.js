@@ -4,7 +4,7 @@ const router = express.Router();
 const projectController = require('../controllers/projectController');
 const { requireAuth } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
-const schemas = require('./projectSchema');
+const { createProjectSchema, updateProjectSchema, validateProject } = require('../controllers/projectSchema');
 
 // Apply auth middleware to all routes
 router.use(requireAuth);
@@ -16,10 +16,10 @@ router.get('/', projectController.getAll);
 router.get('/:id', projectController.getById);
 
 // Create project
-router.post('/', validateRequest(schemas.project), projectController.create);
+router.post('/', validateProject(createProjectSchema), projectController.create);
 
 // Update project
-router.put('/:id', validateRequest(schemas.project), projectController.update);
+router.put('/:id', validateProject(updateProjectSchema), projectController.update);
 
 // Delete project
 router.delete('/:id', projectController.delete);

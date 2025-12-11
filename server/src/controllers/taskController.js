@@ -6,7 +6,7 @@ class TaskController {
     /**
      * Get tasks for a project or all tasks.
      */
-    static getTasksByProject = catchAsync(async (req, res, next) => {
+    getTasksByProject = catchAsync(async (req, res, next) => {
         const { projectId } = req.params;
         let result;
 
@@ -31,7 +31,7 @@ class TaskController {
     /**
      * Create a new task.
      */
-    static createTask = catchAsync(async (req, res, next) => {
+    createTask = catchAsync(async (req, res, next) => {
         const { project_id, title, description, priority, assigned_to, due_date } = req.body;
 
         const result = await pool.query(
@@ -51,7 +51,7 @@ class TaskController {
     /**
      * Update an existing task.
      */
-    static updateTask = catchAsync(async (req, res, next) => {
+    updateTask = catchAsync(async (req, res, next) => {
         const { id } = req.params;
         const { title, description, status, priority, assigned_to, due_date } = req.body;
 
@@ -81,7 +81,7 @@ class TaskController {
     /**
      * Update the status of a task.
      */
-    static updateTaskStatus = catchAsync(async (req, res, next) => {
+    updateTaskStatus = catchAsync(async (req, res, next) => {
         const { id } = req.params;
         const { status } = req.body;
 
@@ -104,7 +104,7 @@ class TaskController {
     /**
      * Delete a task.
      */
-    static deleteTask = catchAsync(async (req, res, next) => {
+    deleteTask = catchAsync(async (req, res, next) => {
         const { id } = req.params;
         const result = await pool.query('DELETE FROM tasks WHERE id = $1 RETURNING id', [id]);
         
@@ -115,4 +115,4 @@ class TaskController {
     });
 }
 
-module.exports = TaskController;
+module.exports = new TaskController();

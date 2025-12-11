@@ -3,7 +3,7 @@ const router = express.Router();
 const quotationController = require('../controllers/quotationController');
 const { requireAuth } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
-const schemas = require('./quotationSchema');
+const { createQuotationSchema, updateStatusSchema } = require('../controllers/quotationSchema');
 
 router.use(requireAuth);
 
@@ -14,10 +14,10 @@ router.get('/', quotationController.getAllQuotations);
 router.get('/:id', quotationController.getQuotationById);
 
 // Create quotation
-router.post('/', validateRequest(schemas.createQuotation), quotationController.createQuotation);
+router.post('/', validateRequest(createQuotationSchema), quotationController.createQuotation);
 
 // Update quotation status
-router.put('/:id/status', validateRequest(schemas.updateStatus), quotationController.updateQuotationStatus);
+router.put('/:id/status', validateRequest(updateStatusSchema), quotationController.updateQuotationStatus);
 
 // Download quotation PDF
 router.get('/:id/download', quotationController.downloadQuotation);
