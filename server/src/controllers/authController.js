@@ -1,61 +1,42 @@
 const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 
 class AuthController {
-    static async login(req, res) {
-        try {
-            const { email, password } = req.body;
+    static login = catchAsync(async (req, res, next) => {
+        const { email, password } = req.body;
 
-            if (!email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Email and password are required'
-                });
-            }
-
-            const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-            const user = userResult.rows[0];
-            if (!user) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Invalid credentials'
-                });
-            }
-            const isValidPassword = await bcrypt.compare(password, user.password_hash);
-            if (!isValidPassword) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Invalid credentials'
-                });
-            }
-
-            // Set session
-            req.session.userId = user.id;
-            req.session.userName = user.name;
-            req.session.userEmail = user.email;
-            req.session.userRole = user.role;
-            req.session.loggedIn = true;
-
-            // Remove password hash from response
-            delete user.password_hash;
-
-            res.json({
-                success: true,
-                message: 'Login successful',
-                data: {
-                    user,
-                    session: req.sessionID
-                }
-            });
-
-        } catch (error) {
-            console.error('Login error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Server error during login'
-            });
+        if (!email || !password) {
+            return next(new AppError('Email and password are required', 400));
         }
-    }
+
+        const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        const user = userResult.rows[0];
+        
+        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+            return next(new AppError('Invalid credentials', 401));
+        }
+
+        // Set session
+        req.session.userId = user.id;
+        req.session.userName = user.name;
+        req.session.userEmail = user.email;
+        req.session.userRole = user.role;
+        req.session.loggedIn = true;
+
+        // Remove password hash from response
+        delete user.password_hash;
+
+        res.json({
+            success: true,
+            message: 'Login successful',
+            data: {
+                user,
+                session: req.sessionID
+            }
+        });
+    });
 
     static logout(req, res) {
         req.session.destroy((err) => {
@@ -86,10 +67,7 @@ class AuthController {
                 }
             });
         } else {
-            res.status(401).json({
-                success: false,
-                message: 'No active session'
-            });
+            return next(new AppError('No active session', 401));
         }
     }
 }

@@ -1,60 +1,50 @@
 // server/src/controllers/invoiceController.js
 const pool = require('../config/database');
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
+const { generateInvoicePdf } = require('../utils/generateInvoicePDF');
 
 const InvoiceController = {
     // Get all invoices
-    getAll: async (req, res) => {
-        try {
-            const result = await pool.query(`
-                SELECT i.*, c.name as client_name
-                FROM invoices i
-                LEFT JOIN clients c ON i.client_id = c.id
-                ORDER BY i.issue_date DESC, i.created_at DESC
-            `);
-            res.json({
-                success: true,
-                message: 'Invoices retrieved successfully',
-                data: result.rows
-            });
-        } catch (error) {
-            console.error('Error getting invoices:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to retrieve invoices',
-            });
-        }
-    },
+    getAll: catchAsync(async (req, res, next) => {
+        const result = await pool.query(`
+            SELECT i.*, c.name as client_name
+            FROM invoices i
+            LEFT JOIN clients c ON i.client_id = c.id
+            ORDER BY i.issue_date DESC, i.created_at DESC
+        `);
+        res.json({
+            success: true,
+            message: 'Invoices retrieved successfully',
+            data: result.rows
+        });
+    }),
 
     // Get single invoice by ID
-    getById: async (req, res) => {
+    getById: catchAsync(async (req, res, next) => {
         const { id } = req.params;
-        try {
-            const invoiceResult = await pool.query(`
-                SELECT i.*, c.name as client_name, c.email as client_email, 
-                       c.phone as client_phone, c.address as client_address
-                FROM invoices i
-                LEFT JOIN clients c ON i.client_id = c.id
-                WHERE i.id = $1
-            `, [id]);
+        const invoiceResult = await pool.query(`
+            SELECT i.*, c.name as client_name, c.email as client_email, 
+                   c.phone as client_phone, c.address as client_address
+            FROM invoices i
+            LEFT JOIN clients c ON i.client_id = c.id
+            WHERE i.id = $1
+        `, [id]);
 
-            if (invoiceResult.rows.length === 0) {
-                return res.status(404).json({ success: false, message: 'Invoice not found' });
-            }
-
-            const invoice = invoiceResult.rows[0];
-
-            // Assuming an `invoice_items` table exists
-            const itemsResult = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
-            invoice.items = itemsResult.rows;
-
-            res.json({ success: true, message: `Invoice ${id} retrieved`, data: invoice });
-        } catch (error) {
-            console.error(`Error getting invoice ${id}:`, error);
-            res.status(500).json({ success: false, message: 'Failed to retrieve invoice' });
+        if (invoiceResult.rows.length === 0) {
+            return next(new AppError('Invoice not found', 404));
         }
-    },
 
-    create: async (req, res) => {
+        const invoice = invoiceResult.rows[0];
+
+        // Assuming an `invoice_items` table exists
+        const itemsResult = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
+        invoice.items = itemsResult.rows;
+
+        res.json({ success: true, message: `Invoice ${id} retrieved`, data: invoice });
+    }),
+
+    create: catchAsync(async (req, res, next) => {
         const { client_id, quotation_id, project_id, items, ...invoiceData } = req.body;
         const dbClient = await pool.connect(); // Use a client from the pool for transactions
         try {
@@ -88,14 +78,14 @@ const InvoiceController = {
             res.status(201).json({ success: true, message: 'Invoice created successfully', data: newInvoice });
         } catch (error) {
             await dbClient.query('ROLLBACK');
-            console.error('Error creating invoice:', error);
-            res.status(500).json({ success: false, message: 'Failed to create invoice' });
+            // Pass the error to the global error handler
+            return next(new AppError('Failed to create invoice.', 500, error));
         } finally {
             dbClient.release(); // Release the client back to the pool
         }
-    },
+    }),
 
-    updateStatus: async (req, res) => {
+    updateStatus: catchAsync(async (req, res, next) => {
         const { id } = req.params;
         const { status } = req.body;
         const validStatuses = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
@@ -104,43 +94,59 @@ const InvoiceController = {
             return res.status(400).json({ success: false, message: 'Invalid status provided.' });
         }
 
-        try {
-            const result = await pool.query(
-                'UPDATE invoices SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-                [status, id]
-            );
+        const result = await pool.query(
+            'UPDATE invoices SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+            [status, id]
+        );
 
-            if (result.rows.length === 0) {
-                return res.status(404).json({ success: false, message: 'Invoice not found' });
-            }
-
-            res.json({
-                success: true,
-                message: `Invoice ${id} status updated to ${status}`,
-                data: result.rows[0]
-            });
-        } catch (error) {
-            console.error(`Error updating invoice ${id} status:`, error);
-            res.status(500).json({ success: false, message: 'Failed to update invoice status' });
+        if (result.rows.length === 0) {
+            return next(new AppError('Invoice not found', 404));
         }
-    },
 
-    delete: async (req, res) => {
+        res.json({
+            success: true,
+            message: `Invoice ${id} status updated to ${status}`,
+            data: result.rows[0]
+        });
+    }),
+
+    delete: catchAsync(async (req, res, next) => {
         const { id } = req.params;
-        try {
-            // The 'invoice_items' table should have ON DELETE CASCADE for this to work cleanly
-            const result = await pool.query('DELETE FROM invoices WHERE id = $1 RETURNING id', [id]);
+        // The 'invoice_items' table should have ON DELETE CASCADE for this to work cleanly
+        const result = await pool.query('DELETE FROM invoices WHERE id = $1 RETURNING id', [id]);
 
-            if (result.rows.length === 0) {
-                return res.status(404).json({ success: false, message: 'Invoice not found' });
-            }
-
-            res.status(200).json({ success: true, message: `Invoice ${id} deleted successfully` });
-        } catch (error) {
-            console.error(`Error deleting invoice ${id}:`, error);
-            res.status(500).json({ success: false, message: 'Failed to delete invoice' });
+        if (result.rows.length === 0) {
+            return next(new AppError('Invoice not found', 404));
         }
-    },
+
+        res.status(200).json({ success: true, message: `Invoice ${id} deleted successfully` });
+    }),
+
+    // Download an invoice as a PDF
+    download: catchAsync(async (req, res, next) => {
+        const { id } = req.params;
+        const invoiceResult = await pool.query(`
+            SELECT i.*, c.name as client_name, c.email as client_email, 
+                   c.phone as client_phone, c.address as client_address
+            FROM invoices i
+            LEFT JOIN clients c ON i.client_id = c.id
+            WHERE i.id = $1
+        `, [id]);
+
+        if (invoiceResult.rows.length === 0) {
+            return next(new AppError('Invoice not found', 404));
+        }
+
+        const invoice = invoiceResult.rows[0];
+        const itemsResult = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1', [id]);
+        invoice.items = itemsResult.rows;
+
+        const filename = `Invoice-${invoice.invoice_number}.pdf`;
+        res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-type', 'application/pdf');
+
+        generateInvoicePdf(invoice, res);
+    }),
 };
 
 module.exports = InvoiceController;

@@ -1,10 +1,11 @@
 const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 
 class QuotationController {
-    async getAllQuotations(req, res) {
-        try {
-            const result = await pool.query(`
+    getAllQuotations = catchAsync(async (req, res, next) => {
+        const result = await pool.query(`
                 SELECT q.*, c.name as client_name
                 FROM quotations q
                 LEFT JOIN clients c ON q.client_id = c.id
@@ -16,63 +17,42 @@ class QuotationController {
                 message: 'Quotations retrieved successfully',
                 data: result.rows
             });
-        } catch (error) {
-            console.error('Get quotations error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to retrieve quotations'
-            });
-        }
-    }
+    }); // Added closing parenthesis for catchAsync
 
-    async getQuotationById(req, res) {
-        try {
-            const { id } = req.params;
-            
-            const quotationResult = await pool.query(`
+    getQuotationById = catchAsync(async (req, res, next) => {
+        const quotationResult = await pool.query(`
                 SELECT q.*, c.name as client_name, c.email as client_email, 
                        c.phone as client_phone, c.address as client_address,
                        c.company as client_company
                 FROM quotations q
                 LEFT JOIN clients c ON q.client_id = c.id
                 WHERE q.id = $1
-            `, [id]);
+            `, [req.params.id]); // Use req.params.id directly
 
-            if (quotationResult.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Quotation not found'
-                });
-            }
-
-            const quotation = quotationResult.rows[0];
-
-            const itemsResult = await pool.query(
-                'SELECT * FROM quotation_items WHERE quotation_id = $1 ORDER BY id ASC',
-                [id]
-            );
-
-            quotation.items = itemsResult.rows;
-
-            res.json({
-                success: true,
-                message: 'Quotation retrieved successfully',
-                data: quotation
-            });
-        } catch (error) {
-            console.error('Get quotation error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to retrieve quotation'
-            });
+        if (quotationResult.rows.length === 0) {
+            return next(new AppError('Quotation not found', 404));
         }
-    }
 
-    async createQuotation(req, res) {
+        const quotation = quotationResult.rows[0];
+
+        const itemsResult = await pool.query(
+            'SELECT * FROM quotation_items WHERE quotation_id = $1 ORDER BY id ASC',
+            [req.params.id]
+        );
+
+        quotation.items = itemsResult.rows;
+
+        res.json({
+            success: true,
+            message: 'Quotation retrieved successfully',
+            data: quotation
+        });
+    });
+
+    createQuotation = catchAsync(async (req, res, next) => {
         const client = await pool.connect();
-        await client.query('BEGIN');
-        
         try {
+            await client.query('BEGIN');
             const {
                 client_id,
                 project_id,
@@ -86,14 +66,6 @@ class QuotationController {
                 notes,
                 valid_until
             } = req.body;
-
-            if (!client_id || !items || !Array.isArray(items) || items.length === 0) {
-                await client.query('ROLLBACK');
-                return res.status(400).json({
-                    success: false,
-                    message: 'Client ID and at least one item are required'
-                });
-            }
 
             const finalQuotationNumber = quotation_number || 
                 `QB-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
@@ -117,8 +89,15 @@ class QuotationController {
                     valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
                 ]
             );
-
             const quotationId = quotationResult.rows[0].id;
+
+            // Check if items array is provided and not empty
+            if (!items || !Array.isArray(items) || items.length === 0) {
+                // If no items, commit the transaction and return the quotation
+                await client.query('COMMIT');
+                res.status(201).json({ success: true, message: 'Quotation created successfully', data: quotationResult.rows[0] });
+                return;
+            }
 
             for (const item of items) {
                 await client.query(
@@ -148,29 +127,17 @@ class QuotationController {
                 }
             });
         } catch (error) {
-            await client.query('ROLLBACK');
-            console.error('Create quotation error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to create quotation'
-            });
+            if (client) await client.query('ROLLBACK');
+            // Pass the error to the global error handler
+            return next(new AppError('Failed to create quotation.', 500, error));
         } finally {
-            client.release();
+            if (client) client.release();
         }
-    }
+    });
 
-    async updateQuotationStatus(req, res) {
-        try {
-            const { id } = req.params;
-            const { status } = req.body;
-
-            const allowedStatuses = ['draft', 'sent', 'approved', 'rejected'];
-            if (!status || !allowedStatuses.includes(status)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Valid status is required: draft, sent, approved, or rejected'
-                });
-            }
+    updateQuotationStatus = catchAsync(async (req, res, next) => {
+        const { id } = req.params;
+        const { status } = req.body;
 
         const result = await pool.query(
                 `UPDATE quotations 
@@ -180,55 +147,32 @@ class QuotationController {
                 [status, id]
             );
 
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Quotation not found'
-                });
-            }
-
-            res.json({
-                success: true,
-                message: 'Quotation status updated successfully',
-                data: result.rows[0]
-            });
-        } catch (error) {
-            console.error('Update quotation status error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to update quotation status'
-            });
+        if (result.rows.length === 0) {
+            return next(new AppError('Quotation not found', 404));
         }
-    }
 
-    async deleteQuotation(req, res) {
-        try {
-            const { id } = req.params;
+        res.json({
+            success: true,
+            message: 'Quotation status updated successfully',
+            data: result.rows[0]
+        });
+    });
 
-            const result = await pool.query(
-                'DELETE FROM quotations WHERE id = $1 RETURNING id',
-                [id]
-            );
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Quotation not found'
-                });
-            }
-
-            res.json({
-                success: true,
-                message: 'Quotation deleted successfully'
-            });
-        } catch (error) {
-            console.error('Delete quotation error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to delete quotation'
-            });
+    deleteQuotation = catchAsync(async (req, res, next) => {
+        const { id } = req.params;
+        const result = await pool.query(
+            'DELETE FROM quotations WHERE id = $1 RETURNING id',
+            [id]
+        );
+        if (result.rows.length === 0) {
+            return next(new AppError('Quotation not found', 404));
         }
-    }
+
+        res.json({
+            success: true,
+            message: 'Quotation deleted successfully'
+        });
+    });
 }
 
 module.exports = new QuotationController();

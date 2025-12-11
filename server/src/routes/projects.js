@@ -10,18 +10,18 @@ const schemas = require('../middleware/validation');
 router.use(requireAuth);
 
 // Get all projects
-router.get('/', projectController.getAllProjects);
+router.get('/', projectController.getAll);
 
 // Get single project
-router.get('/:id', projectController.getProjectById);
+router.get('/:id', projectController.getById);
 
 // Create project
-router.post('/', validateRequest(schemas.project), projectController.createProject);
+router.post('/', validateRequest(schemas.project), projectController.create);
 
 // Update project
-router.put('/:id', projectController.updateProject);
+router.put('/:id', validateRequest(schemas.project), projectController.update);
 
 // Delete project
-router.delete('/:id', projectController.deleteProject);
+router.delete('/:id', projectController.delete);
 
 module.exports = router;
