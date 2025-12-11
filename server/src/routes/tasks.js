@@ -3,7 +3,7 @@ const router = express.Router();
 const taskController = require('../controllers/taskController');
 const { requireAuth } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
-const schemas = require('../schemas/taskSchema');
+const schemas = require('./taskSchema');
 
 router.use(requireAuth);
 

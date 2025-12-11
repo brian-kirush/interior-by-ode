@@ -3,7 +3,7 @@ const router = express.Router();
 const quotationController = require('../controllers/quotationController');
 const { requireAuth } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
-const schemas = require('../schemas/quotationSchema');
+const schemas = require('./quotationSchema');
 
 router.use(requireAuth);
 
