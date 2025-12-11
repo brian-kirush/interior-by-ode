@@ -1,5 +1,5 @@
 const AppError = require('../utils/appError');
-const logger = require('../utils/logger');
+const logger = require('./logger');
 
 /**
  * Handles PostgreSQL unique constraint violation errors (code: 23505).

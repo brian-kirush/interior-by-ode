@@ -2,6 +2,7 @@ const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const { generateQuotationPdf } = require('./generateQuotationPDF');
 
 class QuotationController {
     getAllQuotations = catchAsync(async (req, res, next) => {
@@ -19,28 +20,32 @@ class QuotationController {
             });
     }); // Added closing parenthesis for catchAsync
 
-    getQuotationById = catchAsync(async (req, res, next) => {
-        const quotationResult = await pool.query(`
-                SELECT q.*, c.name as client_name, c.email as client_email, 
-                       c.phone as client_phone, c.address as client_address,
-                       c.company as client_company
-                FROM quotations q
-                LEFT JOIN clients c ON q.client_id = c.id
-                WHERE q.id = $1
-            `, [req.params.id]); // Use req.params.id directly
+    async getFullQuotationById(id) {
+        const quotationResult = await pool.query(
+            `SELECT q.*, c.name as client_name, c.email as client_email, 
+                    c.phone as client_phone, c.address as client_address,
+                    c.company as client_company
+             FROM quotations q
+             LEFT JOIN clients c ON q.client_id = c.id
+             WHERE q.id = $1`,
+            [id]
+        );
 
-        if (quotationResult.rows.length === 0) {
-            return next(new AppError('Quotation not found', 404));
-        }
+        if (quotationResult.rows.length === 0) return null;
 
         const quotation = quotationResult.rows[0];
 
         const itemsResult = await pool.query(
             'SELECT * FROM quotation_items WHERE quotation_id = $1 ORDER BY id ASC',
-            [req.params.id]
+            [id]
         );
 
         quotation.items = itemsResult.rows;
+        return quotation;
+    }
+
+    getQuotationById = catchAsync(async (req, res, next) => {
+        const quotation = await this.getFullQuotationById(req.params.id);
 
         res.json({
             success: true,
@@ -172,6 +177,21 @@ class QuotationController {
             success: true,
             message: 'Quotation deleted successfully'
         });
+    });
+
+    downloadQuotation = catchAsync(async (req, res, next) => {
+        const { id } = req.params;
+        const quotation = await this.getFullQuotationById(id);
+
+        if (!quotation) {
+            return next(new AppError('Quotation not found', 404));
+        }
+
+        const filename = `Quotation-${quotation.quotation_number}.pdf`;
+        res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-type', 'application/pdf');
+
+        generateQuotationPdf(quotation, res);
     });
 }
 

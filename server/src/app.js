@@ -1,6 +1,7 @@
 // server/src/app.js
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clients');
 const dashboardRoutes = require('./routes/dashboard');
@@ -9,6 +10,8 @@ const projectRoutes = require('./routes/projects');
 const quotationRoutes = require('./routes/quotations');
 const settingsRoutes = require('./routes/settings');
 const taskRoutes = require('./routes/tasks');
+const logger = require('./controllers/logger');
+const globalErrorHandler = require('./controllers/errorController');
 
 // Initialize express app
 const app = express();
@@ -18,6 +21,11 @@ const app = express();
 app.use(cors());
 // Parse incoming JSON requests
 app.use(express.json());
+
+// HTTP request logging
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
 // Routes
 // Connect all API endpoints
@@ -30,10 +38,7 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// Basic error handling (can be expanded)
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
+// Global error handler
+app.use(globalErrorHandler);
 
 module.exports = app;

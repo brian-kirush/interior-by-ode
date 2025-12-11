@@ -19,6 +19,9 @@ router.post('/', validateRequest(schemas.createQuotation), quotationController.c
 // Update quotation status
 router.put('/:id/status', validateRequest(schemas.updateStatus), quotationController.updateQuotationStatus);
 
+// Download quotation PDF
+router.get('/:id/download', quotationController.downloadQuotation);
+
 // Delete quotation
 router.delete('/:id', quotationController.deleteQuotation);
 

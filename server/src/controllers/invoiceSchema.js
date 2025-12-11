@@ -1,32 +1,50 @@
 const Joi = require('joi');
 
-const itemSchema = Joi.object({
-    description: Joi.string().required(),
-    quantity: Joi.number().min(0).required(),
-    unit_price: Joi.number().min(0).required(),
-    total: Joi.number().min(0).required()
+const invoiceItemSchema = Joi.object({
+    description: Joi.string().required().max(500),
+    quantity: Joi.number().positive().required(),
+    unit_price: Joi.number().positive().required(),
+    total: Joi.number().positive().required()
 });
 
-const createInvoice = Joi.object({
-    client_id: Joi.number().integer().required(),
-    project_id: Joi.number().integer().allow(null).optional(),
-    quotation_id: Joi.number().integer().allow(null).optional(),
-    issue_date: Joi.date().required(),
-    due_date: Joi.date().required(),
-    subtotal: Joi.number().min(0).required(),
-    tax_rate: Joi.number().min(0).optional(),
+const createInvoiceSchema = Joi.object({
+    client_id: Joi.number().integer().positive().required(),
+    quotation_id: Joi.number().integer().positive().optional(),
+    project_id: Joi.number().integer().positive().optional(),
+    subtotal: Joi.number().positive().required(),
+    tax_rate: Joi.number().min(0).max(100).default(16),
     tax_amount: Joi.number().min(0).required(),
-    discount_amount: Joi.number().min(0).optional().default(0),
-    total: Joi.number().min(0).required(),
-    notes: Joi.string().allow('').optional(),
-    items: Joi.array().items(itemSchema).min(1).required()
+    discount_amount: Joi.number().min(0).required(),
+    total: Joi.number().positive().required(),
+    status: Joi.string().valid('draft', 'sent', 'paid', 'overdue', 'cancelled').default('draft'),
+    issue_date: Joi.date().iso().default(Date.now),
+    due_date: Joi.date().iso().greater(Joi.ref('issue_date')).required(),
+    notes: Joi.string().allow('').max(1000).optional(),
+    items: Joi.array().items(invoiceItemSchema).min(1).required()
 });
 
-const updateStatus = Joi.object({
+const updateInvoiceStatusSchema = Joi.object({
     status: Joi.string().valid('draft', 'sent', 'paid', 'overdue', 'cancelled').required()
 });
 
+const validateInvoice = (schema) => (req, res, next) => {
+    const { error } = schema.validate(req.body, { abortEarly: false });
+    if (error) {
+        const errors = error.details.map(detail => ({
+            field: detail.path.join('.'),
+            message: detail.message
+        }));
+        return res.status(400).json({
+            success: false,
+            message: 'Validation failed',
+            errors
+        });
+    }
+    next();
+};
+
 module.exports = {
-    createInvoice,
-    updateStatus
+    createInvoiceSchema,
+    updateInvoiceStatusSchema,
+    validateInvoice
 };
