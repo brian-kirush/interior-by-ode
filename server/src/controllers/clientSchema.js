@@ -1,12 +1,9 @@
-// Validation schemas for clients
-// Using Joi for validation (make sure Joi is installed)
-
 const Joi = require('joi');
 
 const clientSchemas = {
   createClient: Joi.object({
-    name: Joi.string().min(2).max(100).required(),
-    email: Joi.string().email().required(),
+    name: Joi.string().required().min(2).max(100),
+    email: Joi.string().required().email(),
     phone: Joi.string().allow('').optional(),
     address: Joi.string().allow('').optional(),
     company: Joi.string().allow('').optional(),
