@@ -32,7 +32,8 @@ app.use(express.json());
 // Session middleware
 const sessionStore = new pgSession({
   pool: pool,
-  tableName: 'session'
+  tableName: 'session',
+  createTableIfMissing: true // Auto-create table if it doesn't exist
 });
 
 app.use(session({
