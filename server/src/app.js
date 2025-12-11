@@ -67,6 +67,11 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/tasks', taskRoutes);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Serve index.html for any non-API routes (SPA routing)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client_temp/index.html'));

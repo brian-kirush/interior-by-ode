@@ -4,7 +4,7 @@ services:
     runtime: node
     buildCommand: cd server && npm install
     plan: free
-    startCommand: cd server && node src/server.js
+    startCommand: cd server && npm run deploy
     rootDir: .
     envVars:
       - key: NODE_ENV
@@ -19,7 +19,7 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: https://interior-by-ode.onrender.com
-    healthCheckPath: /health
+    healthCheckPath: /
     autoDeploy: true
 
 databases:
