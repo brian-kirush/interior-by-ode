@@ -13,6 +13,9 @@ router.get('/', InvoiceController.getAll);
 // Get single invoice
 router.get('/:id', InvoiceController.getById);
 
+// Download invoice PDF
+router.get('/:id/download', InvoiceController.download);
+
 // Create invoice
 router.post('/', validateInvoice(createInvoiceSchema), InvoiceController.create);
 

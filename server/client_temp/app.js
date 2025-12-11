@@ -440,8 +440,9 @@ function renderQuotationsTable(quotations) {
             <td>${formatCurrency(quote.total)}</td>
             <td><span class="status-badge status-${quote.status}">${quote.status}</span></td>
             <td>
-                <button class="btn btn-sm btn-secondary view-quotation-btn" data-id="${quote.id}"><i class="fas fa-eye"></i></button>
-                <button class="btn btn-sm btn-danger delete-quotation-btn" data-id="${quote.id}"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-sm btn-secondary view-quotation-btn" data-id="${quote.id}" title="View"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-secondary edit-quotation-btn" data-id="${quote.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger delete-quotation-btn" data-id="${quote.id}" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tableBody.appendChild(row);
@@ -477,8 +478,9 @@ function renderInvoicesTable(invoices) {
             <td>${formatCurrency(invoice.total)}</td>
             <td><span class="status-badge status-${invoice.status}">${invoice.status}</span></td>
             <td>
-                <button class="btn btn-sm btn-secondary view-invoice-btn" data-id="${invoice.id}"><i class="fas fa-eye"></i></button>
-                <button class="btn btn-sm btn-danger delete-invoice-btn" data-id="${invoice.id}"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-sm btn-secondary view-invoice-btn" data-id="${invoice.id}" title="View"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-secondary edit-invoice-btn" data-id="${invoice.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger delete-invoice-btn" data-id="${invoice.id}" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tableBody.appendChild(row);
@@ -645,6 +647,173 @@ async function showDocumentViewer(docId, docType) {
     } catch (error) {
         console.error(`Failed to show ${docType}:`, error);
     }
+}
+
+async function showQuotationDetail(quotationId) {
+    try {
+        const result = await apiFetch(`${API_BASE_URL}/quotations/${quotationId}`);
+        if (!result.success) {
+            return showNotification('Failed to load quotation.', 'error');
+        }
+
+        const quotation = result.data;
+        const listContainer = document.getElementById('quotationsListContainer');
+        const detailContainer = document.getElementById('quotationDetailContainer');
+        const contentDiv = document.getElementById('quotationContent');
+
+        // Build items table
+        let itemsHtml = quotation.items.map(item => `
+            <tr>
+                <td>${item.description}</td>
+                <td>${item.quantity}</td>
+                <td>${formatCurrency(item.unit_price)}</td>
+                <td>${formatCurrency(item.total)}</td>
+            </tr>
+        `).join('');
+
+        // Build detail view
+        contentDiv.innerHTML = `
+            <div style="padding: 20px;">
+                <h2>Quotation #${quotation.quotation_number}</h2>
+                <p><strong>Client:</strong> ${quotation.client_name}</p>
+                <p><strong>Date:</strong> ${formatDate(quotation.created_at)}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${quotation.status}">${quotation.status}</span></p>
+                <hr>
+                <h4>Items</h4>
+                <table class="items-table">
+                    <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div class="summary" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                    <p>Subtotal: <strong>${formatCurrency(quotation.subtotal)}</strong></p>
+                    <p>Tax (${quotation.tax_rate}%): <strong>${formatCurrency(quotation.tax_amount)}</strong></p>
+                    <p>Discount: <strong>- ${formatCurrency(quotation.discount_amount)}</strong></p>
+                    <h3>Total: <strong>${formatCurrency(quotation.total)}</strong></h3>
+                </div>
+            </div>
+        `;
+
+        // Show detail, hide list
+        listContainer.style.display = 'none';
+        detailContainer.style.display = 'block';
+
+        // Setup button handlers
+        document.getElementById('backToQuotesListBtn').onclick = () => {
+            listContainer.style.display = 'block';
+            detailContainer.style.display = 'none';
+        };
+
+        document.getElementById('downloadQuotationBtn').onclick = () => {
+            window.location.href = `${API_BASE_URL}/quotations/${quotationId}/download`;
+        };
+
+        document.getElementById('printQuotationBtn').onclick = () => {
+            window.print();
+        };
+    } catch (error) {
+        console.error('Failed to show quotation detail:', error);
+    }
+}
+
+async function showInvoiceDetail(invoiceId) {
+    try {
+        const result = await apiFetch(`${API_BASE_URL}/invoices/${invoiceId}`);
+        if (!result.success) {
+            return showNotification('Failed to load invoice.', 'error');
+        }
+
+        const invoice = result.data;
+        const listContainer = document.getElementById('invoicesListContainer');
+        const detailContainer = document.getElementById('invoiceDetailContainer');
+        const contentDiv = document.getElementById('invoiceContent');
+
+        // Build items table
+        let itemsHtml = invoice.items.map(item => `
+            <tr>
+                <td>${item.description}</td>
+                <td>${item.quantity}</td>
+                <td>${formatCurrency(item.unit_price)}</td>
+                <td>${formatCurrency(item.total)}</td>
+            </tr>
+        `).join('');
+
+        // Build detail view
+        contentDiv.innerHTML = `
+            <div style="padding: 20px;">
+                <h2>Invoice #${invoice.invoice_number}</h2>
+                <p><strong>Client:</strong> ${invoice.client_name}</p>
+                <p><strong>Issue Date:</strong> ${formatDate(invoice.issue_date)}</p>
+                <p><strong>Due Date:</strong> ${formatDate(invoice.due_date)}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${invoice.status}">${invoice.status}</span></p>
+                <hr>
+                <h4>Items</h4>
+                <table class="items-table">
+                    <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div class="summary" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                    <p>Subtotal: <strong>${formatCurrency(invoice.subtotal)}</strong></p>
+                    <p>Tax: <strong>${formatCurrency(invoice.tax_amount)}</strong></p>
+                    <h3>Total: <strong>${formatCurrency(invoice.total)}</strong></h3>
+                </div>
+            </div>
+        `;
+
+        // Show detail, hide list
+        listContainer.style.display = 'none';
+        detailContainer.style.display = 'block';
+
+        // Setup button handlers
+        document.getElementById('backToInvoicesListBtn').onclick = () => {
+            listContainer.style.display = 'block';
+            detailContainer.style.display = 'none';
+        };
+
+        document.getElementById('downloadInvoiceBtn').onclick = () => {
+            window.location.href = `${API_BASE_URL}/invoices/${invoiceId}/download`;
+        };
+
+        document.getElementById('printInvoiceBtn').onclick = () => {
+            window.print();
+        };
+
+        document.getElementById('markAsPaidBtn').onclick = () => {
+            updateInvoiceStatus(invoiceId, 'paid');
+        };
+
+        document.getElementById('markAsOverdueBtn').onclick = () => {
+            updateInvoiceStatus(invoiceId, 'overdue');
+        };
+    } catch (error) {
+        console.error('Failed to show invoice detail:', error);
+    }
+}
+
+async function updateInvoiceStatus(invoiceId, status) {
+    try {
+        const result = await apiFetch(`${API_BASE_URL}/invoices/${invoiceId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status })
+        });
+        if (result.success) {
+            showNotification(`Invoice marked as ${status}`, 'success');
+            loadInvoices(); // Reload the list
+            document.getElementById('invoicesListContainer').style.display = 'block';
+            document.getElementById('invoiceDetailContainer').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Failed to update invoice status:', error);
+    }
+}
+
+async function editQuotation(quotationId) {
+    showNotification('Edit quotation feature coming soon!', 'error');
+    // TODO: Implement edit functionality
+}
+
+async function editInvoice(invoiceId) {
+    showNotification('Edit invoice feature coming soon!', 'error');
+    // TODO: Implement edit functionality
 }
 
 // --- MODAL HANDLING ---
@@ -1193,7 +1362,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Quotation actions
         if (e.target.closest('.view-quotation-btn')) {
-            showDocumentViewer(e.target.closest('.view-quotation-btn').dataset.id, 'quotation');
+            showQuotationDetail(e.target.closest('.view-quotation-btn').dataset.id);
+        }
+        if (e.target.closest('.edit-quotation-btn')) {
+            editQuotation(e.target.closest('.edit-quotation-btn').dataset.id);
         }
         if (e.target.closest('.delete-quotation-btn')) {
             handleDeleteQuotation(e.target.closest('.delete-quotation-btn').dataset.id);
@@ -1201,7 +1373,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Invoice actions
         if (e.target.closest('.view-invoice-btn')) {
-            showDocumentViewer(e.target.closest('.view-invoice-btn').dataset.id, 'invoice');
+            showInvoiceDetail(e.target.closest('.view-invoice-btn').dataset.id);
+        }
+        if (e.target.closest('.edit-invoice-btn')) {
+            editInvoice(e.target.closest('.edit-invoice-btn').dataset.id);
         }
         if (e.target.closest('.delete-invoice-btn')) {
             handleDeleteInvoice(e.target.closest('.delete-invoice-btn').dataset.id);
