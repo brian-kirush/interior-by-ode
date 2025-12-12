@@ -4,7 +4,7 @@ services:
     runtime: node
     buildCommand: cd server && npm install
     plan: free
-    startCommand: cd server && npm run deploy
+    startCommand: cd server && node src/server.js
     rootDir: .
     envVars:
       - key: NODE_ENV
@@ -22,8 +22,14 @@ services:
     healthCheckPath: /
     autoDeploy: true
     preDeployCommand: |
-      psql $DATABASE_URL -c 'CREATE TABLE IF NOT EXISTS "session" ("sid" varchar NOT NULL COLLATE "default","sess" json NOT NULL,"expire" timestamp(6) NOT NULL) WITH (OIDS=FALSE);' -c 'ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;'
-
+      psql $DATABASE_URL -c '
+        CREATE TABLE IF NOT EXISTS "session" ("sid" varchar NOT NULL COLLATE "default","sess" json NOT NULL,"expire" timestamp(6) NOT NULL) WITH (OIDS=FALSE);
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ''session_pkey'') THEN
+            ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
+          END IF;
+        END $$;
+      '
 
 databases:
   - name: interiors_db
