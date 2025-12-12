@@ -21,6 +21,9 @@ services:
         value: https://interior-by-ode.onrender.com
     healthCheckPath: /
     autoDeploy: true
+    preDeployCommand: |
+      psql $DATABASE_URL -c 'CREATE TABLE IF NOT EXISTS "session" ("sid" varchar NOT NULL COLLATE "default","sess" json NOT NULL,"expire" timestamp(6) NOT NULL) WITH (OIDS=FALSE);' -c 'ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;'
+
 
 databases:
   - name: interiors_db

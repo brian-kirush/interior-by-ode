@@ -1,0 +1,22 @@
+Repair run started at 2025-12-12T05:27:01Z
+\n--- Parsed host for DNS check ---
+Host: dpg-d4sofnkhg0os738b5280-a.virginia-postgres.render.com
+\n-- nslookup result --
+Server:		127.0.0.53
+Address:	127.0.0.53#53
+
+Non-authoritative answer:
+Name:	dpg-d4sofnkhg0os738b5280-a.virginia-postgres.render.com
+Address: 54.87.193.254
+Name:	dpg-d4sofnkhg0os738b5280-a.virginia-postgres.render.com
+Address: 35.174.144.149
+Name:	dpg-d4sofnkhg0os738b5280-a.virginia-postgres.render.com
+Address: 18.205.164.157
+Name:	dpg-d4sofnkhg0os738b5280-a.virginia-postgres.render.com
+Address: 64:ff9b::12cd:a49d
+Name:	dpg-d4sofnkhg0os738b5280-a.virginia-postgres.render.com
+Address: 64:ff9b::3657:c1fe
+Name:	dpg-d4sofnkhg0os738b5280-a.virginia-postgres.render.com
+Address: 64:ff9b::23ae:9095
+
+\n-- ping (one packet) --
