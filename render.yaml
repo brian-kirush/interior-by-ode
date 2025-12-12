@@ -2,11 +2,7 @@ services:
   - type: web
     name: interior-by-ode
     runtime: node
-    buildCommand: |
-      cd server && npm install && psql $DATABASE_URL -c '
-        CREATE TABLE IF NOT EXISTS "session" ("sid" varchar NOT NULL COLLATE "default","sess" json NOT NULL,"expire" timestamp(6) NOT NULL) WITH (OIDS=FALSE);
-        DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ''session_pkey'') THEN ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE; END IF; END $$;
-      '
+    buildCommand: cd server && npm install
     plan: free
     startCommand: cd server && node src/server.js
     rootDir: .
@@ -25,6 +21,12 @@ services:
         value: https://interior-by-ode.onrender.com
     healthCheckPath: /
     autoDeploy: true
+    preDeployCommand: |
+      set -o pipefail
+      psql $DATABASE_URL -c '
+        CREATE TABLE IF NOT EXISTS "session" ("sid" varchar NOT NULL COLLATE "default","sess" json NOT NULL,"expire" timestamp(6) NOT NULL) WITH (OIDS=FALSE);
+        DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ''session_pkey'') THEN ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE; END IF; END $$;
+      '
 
 databases:
   - name: interiors_db
