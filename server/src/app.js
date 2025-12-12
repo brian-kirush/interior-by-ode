@@ -36,7 +36,7 @@ try {
   sessionStore = new pgSession({
     pool: pool,
     tableName: 'session',
-    createTableIfMissing: true // Auto-create table if it doesn't exist
+    createTableIfMissing: false // Disable auto-create in production to avoid race conditions
   });
 } catch (err) {
   // If initialization fails (e.g. DB temporarily unavailable), log and continue
