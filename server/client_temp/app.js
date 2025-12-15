@@ -159,6 +159,7 @@ async function handleLogin() {
             state.currentUser = result.data.user;
             setupEventListeners(); // CRITICAL FIX: Re-initialize listeners after login.
             hideLoginScreen();
+            loadDashboardStats(); // CRITICAL FIX: Fetch live data immediately after login.
             navigateToPage(state.currentPage);
             document.querySelector('.app-container').style.opacity = '1';
 
@@ -1436,7 +1437,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
     document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
 
-    // CRITICAL FIX: Attach login/logout listeners immediately so the login button always works.
+    // CRITICAL FIX: Attach login listeners immediately so the login button always works.
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
     document.getElementById('password')?.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') handleLogin();
@@ -1445,7 +1446,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Apply mobile/responsive fixes
     applyMobileFixes();
 
-    // Check user session and load initial page
     const isLoggedIn = await checkSession();
     if (isLoggedIn) { // If logged in, navigate to the default page.
         setupEventListeners(); // Setup listeners for the already logged-in user.
