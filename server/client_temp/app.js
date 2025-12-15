@@ -157,9 +157,8 @@ async function handleLogin() {
 
         if (result.success) {
             state.currentUser = result.data.user;
+            setupEventListeners(); // CRITICAL FIX: Re-initialize listeners after login.
             hideLoginScreen();
-            // Instead of re-initializing the whole app, just load the default page
-            // This prevents re-attaching all event listeners.
             navigateToPage(state.currentPage);
             document.querySelector('.app-container').style.opacity = '1';
 
@@ -1441,11 +1440,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyMobileFixes();
 
     // Set up all static event listeners
-    setupEventListeners(); // This sets up listeners on static elements.
-
     // Check user session and load initial page
     const isLoggedIn = await checkSession();
     if (isLoggedIn) { // If logged in, navigate to the default page.
+        setupEventListeners(); // Setup listeners for the already logged-in user.
         navigateToPage(state.currentPage);
         document.querySelector('.app-container').style.opacity = '1';
     } else {
@@ -1523,6 +1521,12 @@ function setupEventListeners() {
         if (navLink) {
             e.preventDefault();
             navigateToPage(navLink.dataset.page);
+        }
+
+        // --- Mobile Sidebar Toggle ---
+        const mobileMenuBtn = target.closest('#mobileMenuBtn');
+        if (mobileMenuBtn) {
+            document.getElementById('sidebar')?.classList.toggle('active');
         }
 
         const editClientBtn = target.closest('.edit-client-btn');
