@@ -1430,32 +1430,6 @@ function applyMobileFixes() {
 /**
  * Initializes the application, sets up event listeners.
  */
-async function initializeApp() {
-    document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
-    document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
-    document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
-    document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
-}
-
-
-/**
- * Initializes the application, sets up event listeners.
- */
-async function initializeApp() {
-    const isLoggedIn = await checkSession();    
-
-    if (isLoggedIn) {
-        // Load initial page data if the user is logged in
-        navigateToPage(state.currentPage);
-        document.querySelector('.app-container').style.opacity = '1';
-    } else {
-        showLoginScreen();
-        if (state.isIOS) {
-            setTimeout(() => document.getElementById('email')?.focus(), 500);
-        }
-    }
-}
-
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- General Setup ---
@@ -1468,168 +1442,145 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Apply mobile/responsive fixes after the DOM is fully parsed
+    document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
+    document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
+    document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
+    document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
+
+    // --- Start the App ---
+    initializeApp();
+});
+
+/**
+ * Initializes the application, sets up event listeners.
+ */
+async function initializeApp() {
+    // Apply mobile/responsive fixes first
     applyMobileFixes();
 
+    // Set up all event listeners
+    setupEventListeners();
+
+    // Check user session and load initial page
+    const isLoggedIn = await checkSession();
+    if (isLoggedIn) {
+        navigateToPage(state.currentPage);
+        document.querySelector('.app-container').style.opacity = '1';
+    } else {
+        showLoginScreen();
+        if (state.isIOS) {
+            setTimeout(() => document.getElementById('email')?.focus(), 500);
+        }
+    }
+}
+
+/**
+ * Centralized function to set up all event listeners for the app.
+ */
+function setupEventListeners() {
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
-    initializeApp(); // This will now correctly set up the initial state
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
-    document.querySelectorAll('input.form-control').forEach(input => {
-        if (state.isIOS) { // Apply keyboard fixes primarily for iOS where it's most problematic
-            input.addEventListener('focus', () => {
-                // Briefly scroll the input into the middle of the view
-                setTimeout(() => {
-                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100);
-            });
-        }
-    });
-    document.getElementById('password')?.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') {
-            handleLogin();
-        }
-    });
     document.getElementById('logoutBtnMobile')?.addEventListener('click', handleLogout);
+    document.getElementById('password')?.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') handleLogin();
+    });
 
     // --- Navigation ---
     document.querySelectorAll('.nav-item[data-page]').forEach(link => {
-        link.addEventListener('click', (e) => { e.preventDefault(); navigateToPage(link.dataset.page); });
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateToPage(link.dataset.page);
+        });
     });
 
-    // --- Mobile Menu Toggle (Corrected) ---
+    // --- Mobile Menu Toggle ---
     const mobileNavToggle = document.getElementById('mobileNavToggle');
     if (mobileNavToggle) {
         mobileNavToggle.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent any default link behavior
+            e.preventDefault();
             document.getElementById('mobileNavMenu')?.classList.toggle('open');
         });
     }
 
-    // --- Responsive Fixes ---
-    // Make the calculator table horizontally scrollable on mobile
-    const itemsTable = document.getElementById('itemsTableBody')?.parentElement;
-    if (itemsTable) {
-        const wrapper = document.createElement('div');
-        wrapper.style.overflowX = 'auto';
-        itemsTable.parentNode.insertBefore(wrapper, itemsTable);
-        wrapper.appendChild(itemsTable);
-    }
-
-    // Make the clients table horizontally scrollable on mobile
-    const clientsTable = document.getElementById('clientsTableBody')?.parentElement;
-    if (clientsTable) {
-        const wrapper = document.createElement('div');
-        wrapper.style.overflowX = 'auto';
-        clientsTable.parentNode.insertBefore(wrapper, clientsTable);
-        wrapper.appendChild(clientsTable);
-    }
-
-
-    // --- Global Listeners ---
-    window.addEventListener('orientationchange', () => {
-        setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
-    });
-
     // --- Modals ---
     setupModal('newProjectModal', 'newProjectBtn', 'cancelNewProjectBtn');
-    setupModal('editClientModal', null, 'cancelEditClientBtn'); // Opened programmatically
-    setupModal('editProjectModal', null, 'cancelEditProjectBtn'); // Opened programmatically
-    setupModal('editTaskModal', null, 'cancelEditTaskBtn'); // Opened programmatically
+    setupModal('editClientModal', null, 'cancelEditClientBtn');
+    setupModal('editProjectModal', null, 'cancelEditProjectBtn');
+    setupModal('editTaskModal', null, 'cancelEditTaskBtn');
     setupModal('viewDocumentModal', null, 'closeDocumentViewerBtn');
 
-    // --- Page-specific Event Listeners ---
+    // --- Delegated Event Listeners for Dynamic Content ---
     document.body.addEventListener('click', (e) => {
-        // Client actions
-        if (e.target.closest('.edit-client-btn')) {
-            handleEditClient(e.target.closest('.edit-client-btn').dataset.id);
-        }
-        if (e.target.closest('.delete-client-btn')) {
-            handleDeleteClient(e.target.closest('.delete-client-btn').dataset.id);
-        }
-
-        // Client table sorting
-        if (e.target.closest('#clients-page .sortable')) {
-            handleClientSort(e.target.closest('.sortable').dataset.sort);
-        }
-
-        // Project actions
-        if (e.target.closest('.edit-project-btn')) {
-            handleEditProject(e.target.closest('.edit-project-btn').dataset.id);
-        }
-        if (e.target.closest('.delete-project-btn')) {
-            handleDeleteProject(e.target.closest('.delete-project-btn').dataset.id);
-        }
-
-        // Quotation actions
-        if (e.target.closest('.view-quotation-btn')) {
-            showQuotationDetail(e.target.closest('.view-quotation-btn').dataset.id);
-        }
-        if (e.target.closest('.edit-quotation-btn')) {
-            editQuotation(e.target.closest('.edit-quotation-btn').dataset.id);
-        }
-        if (e.target.closest('.delete-quotation-btn')) {
-            handleDeleteQuotation(e.target.closest('.delete-quotation-btn').dataset.id);
-        }
-
-        // Invoice actions
-        if (e.target.closest('.view-invoice-btn')) {
-            showInvoiceDetail(e.target.closest('.view-invoice-btn').dataset.id);
-        }
-        if (e.target.closest('.edit-invoice-btn')) {
-            editInvoice(e.target.closest('.edit-invoice-btn').dataset.id);
-        }
-        if (e.target.closest('.delete-invoice-btn')) {
-            handleDeleteInvoice(e.target.closest('.delete-invoice-btn').dataset.id);
-        }
-
-        // Task actions
-        if (e.target.closest('.edit-task-btn')) {
-            handleEditTask(e.target.closest('.edit-task-btn').dataset.id);
-        }
-        if (e.target.closest('.delete-task-btn')) {
-            handleDeleteTask(e.target.closest('.delete-task-btn').dataset.id);
-        }
-
-        // Calculator actions
-        if (e.target.closest('.remove-item-btn')) {
-            removeCalculatorItem(e.target.closest('tr').id);
-        }
-    });
-
-    document.getElementById('itemsTableBody')?.addEventListener('input', (e) => {
         const target = e.target;
-        updateCalculatorItem(target.closest('tr').id, target.dataset.field, target.value);
+        const editClientBtn = target.closest('.edit-client-btn');
+        if (editClientBtn) handleEditClient(editClientBtn.dataset.id);
+
+        const deleteClientBtn = target.closest('.delete-client-btn');
+        if (deleteClientBtn) handleDeleteClient(deleteClientBtn.dataset.id);
+
+        const sortableHeader = target.closest('#clients-page .sortable');
+        if (sortableHeader) handleClientSort(sortableHeader.dataset.sort);
+
+        const editProjectBtn = target.closest('.edit-project-btn');
+        if (editProjectBtn) handleEditProject(editProjectBtn.dataset.id);
+
+        const deleteProjectBtn = target.closest('.delete-project-btn');
+        if (deleteProjectBtn) handleDeleteProject(deleteProjectBtn.dataset.id);
+
+        const viewQuotationBtn = target.closest('.view-quotation-btn');
+        if (viewQuotationBtn) showQuotationDetail(viewQuotationBtn.dataset.id);
+
+        const editQuotationBtn = target.closest('.edit-quotation-btn');
+        if (editQuotationBtn) editQuotation(editQuotationBtn.dataset.id);
+
+        const deleteQuotationBtn = target.closest('.delete-quotation-btn');
+        if (deleteQuotationBtn) handleDeleteQuotation(deleteQuotationBtn.dataset.id);
+
+        const viewInvoiceBtn = target.closest('.view-invoice-btn');
+        if (viewInvoiceBtn) showInvoiceDetail(viewInvoiceBtn.dataset.id);
+
+        const editInvoiceBtn = target.closest('.edit-invoice-btn');
+        if (editInvoiceBtn) editInvoice(editInvoiceBtn.dataset.id);
+
+        const deleteInvoiceBtn = target.closest('.delete-invoice-btn');
+        if (deleteInvoiceBtn) handleDeleteInvoice(deleteInvoiceBtn.dataset.id);
+
+        const editTaskBtn = target.closest('.edit-task-btn');
+        if (editTaskBtn) handleEditTask(editTaskBtn.dataset.id);
+
+        const deleteTaskBtn = target.closest('.delete-task-btn');
+        if (deleteTaskBtn) handleDeleteTask(deleteTaskBtn.dataset.id);
+
+        const removeItemBtn = target.closest('.remove-item-btn');
+        if (removeItemBtn) removeCalculatorItem(removeItemBtn.closest('tr').id);
     });
 
-    // --- Form Submissions ---
+    // --- Form Submissions & Actions ---
     document.getElementById('saveSettingsBtn')?.addEventListener('click', saveSettings);
     document.getElementById('saveClientChangesBtn')?.addEventListener('click', handleSaveClient);
     document.getElementById('saveProjectChangesBtn')?.addEventListener('click', handleSaveProject);
     document.getElementById('saveTaskChangesBtn')?.addEventListener('click', handleSaveTask);
     document.getElementById('saveEditBtn')?.addEventListener('click', saveEdits);
     document.getElementById('addNewClientBtn')?.addEventListener('click', handleAddNewClient);
-    
+
     // --- Calculator Page ---
-    document.getElementById('addItemBtn')?.addEventListener('click', () => {
-        addCalculatorItem();
-    });
-    document.getElementById('generateQuoteBtn')?.addEventListener('click', () => generateQuotation());
+    document.getElementById('addItemBtn')?.addEventListener('click', addCalculatorItem);
+    document.getElementById('generateQuoteBtn')?.addEventListener('click', generateQuotation);
     document.getElementById('clearCalculatorBtn')?.addEventListener('click', clearCalculator);
+    document.getElementById('itemsTableBody')?.addEventListener('input', (e) => {
+        const target = e.target;
+        if (target.matches('input')) {
+            updateCalculatorItem(target.closest('tr').id, target.dataset.field, target.value);
+        }
+    });
 
     // --- Filtering and Sliders ---
     document.getElementById('clientSearchInput')?.addEventListener('input', (e) => {
         state.clientFilterQuery = e.target.value;
-        loadClients(); // Reload data from backend with new filter
+        loadClients();
     });
     document.getElementById('editProjectProgress')?.addEventListener('input', (e) => {
         document.getElementById('editProjectProgressValue').textContent = `${e.target.value}%`;
     });
-
-
-    // --- Start the App ---
-    // Set up dashboard card navigation
-    document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
-    document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
-    document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
-    document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
-});
+}
