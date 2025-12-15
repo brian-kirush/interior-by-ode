@@ -197,7 +197,7 @@
         
         @media (min-width: 992px) {
             .sidebar {
-                display: block;
+                display: none; /* Hide sidebar on desktop */
             }
         }
 
@@ -287,7 +287,7 @@
             background: transparent;
             width: 100%;
             overflow-x: hidden;
-            /* Margin will be handled by media queries */
+            margin-left: 0; /* Ensure no margin from a hidden sidebar */
         }
 
         /* Header */
