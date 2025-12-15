@@ -291,7 +291,10 @@
 
         /* Sidebar with Animation */
         .sidebar {
-            display: none; /* hidden per request */
+            width: 280px;
+            background: linear-gradient(180deg, var(--jungle-green) 0%, var(--jungle-dark-green) 100%);
+            padding-top: 35px;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-header {
@@ -1187,6 +1190,9 @@
                 gap: 12px;
                 text-align: center;
                 position: relative;
+            }
+            .mobile-nav-wrapper {
+                display: none; /* Hide the non-functional header menu on mobile */
             }
             .items-table-wrapper {
                 overflow-x: auto; /* Allow tables to scroll horizontally */
