@@ -158,9 +158,8 @@ async function handleLogin() {
         if (result.success) {
             state.currentUser = result.data.user;
             setupEventListeners(); // CRITICAL FIX: Re-initialize listeners after login.
-            hideLoginScreen();
-            document.querySelector('.app-container').style.opacity = '1';
-
+            hideLoginScreen(); // This will also show the app container.
+            navigateToPage(state.currentPage); // Load initial page data.
         } else {
             loginMessage.textContent = result.message || 'Login failed.';
             loginMessage.style.display = 'block';
@@ -213,7 +212,7 @@ function showLoginScreen() {
 
 function hideLoginScreen() {
     document.getElementById('loginContainer').style.display = 'none';
-    document.querySelector('.app-container').style.opacity = '1';
+    document.querySelector('.app-container').style.opacity = '1'; // Make app visible
 }
 
 // --- PAGE NAVIGATION ---
@@ -1449,7 +1448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isLoggedIn) { // If logged in, navigate to the default page.
         setupEventListeners(); // Setup listeners for the already logged-in user.
         navigateToPage(state.currentPage);
-        document.querySelector('.app-container').style.opacity = '1';
+        // The hideLoginScreen() call within checkSession already handles this.
     } else {
         showLoginScreen();
         if (state.isIOS) {
