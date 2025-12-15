@@ -230,6 +230,15 @@ function navigateToPage(pageId) {
 
     // Hide all pages
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+
+    // Explicitly hide detail views that might persist across page navigations
+    const quoteDetail = document.getElementById('quotationDetailContainer');
+    if (quoteDetail) quoteDetail.style.display = 'none';
+    const invoiceDetail = document.getElementById('invoiceDetailContainer');
+    if (invoiceDetail) invoiceDetail.style.display = 'none';
+    // And restore list views
+    const quoteList = document.getElementById('quotationsListContainer');
+    if (quoteList) quoteList.style.display = 'block';
     
     // Show the target page
     const targetPage = document.getElementById(`${pageId}-page`);
