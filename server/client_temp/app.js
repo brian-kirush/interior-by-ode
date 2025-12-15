@@ -1436,10 +1436,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
     document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
 
+    // CRITICAL FIX: Attach login/logout listeners immediately so the login button always works.
+    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+    document.getElementById('password')?.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') handleLogin();
+    });
+
     // Apply mobile/responsive fixes
     applyMobileFixes();
 
-    // Set up all static event listeners
     // Check user session and load initial page
     const isLoggedIn = await checkSession();
     if (isLoggedIn) { // If logged in, navigate to the default page.
@@ -1498,12 +1503,8 @@ function setupEventListeners() {
     });
 
     // --- Authentication ---
-    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
     document.getElementById('logoutBtnMobile')?.addEventListener('click', handleLogout);
-    document.getElementById('password')?.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') handleLogin();
-    });
     
     // --- Modals ---
     setupModal('newProjectModal', 'newProjectBtn', 'cancelNewProjectBtn');
