@@ -8,6 +8,7 @@ const pgSession = require('connect-pg-simple')(session);
 const pool = require('./config/database');
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clients');
+const dashboardRoutes = require('./routes/dashboard');
 const invoiceRoutes = require('./routes/invoices');
 const projectRoutes = require('./routes/projects');
 const quotationRoutes = require('./routes/quotations');
