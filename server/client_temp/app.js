@@ -1472,14 +1472,6 @@ async function initializeApp() {} // This function is kept for reference but its
  * Centralized function to set up all event listeners for the app.
  */
 function setupEventListeners() {
-    // --- Navigation ---
-    document.querySelectorAll('.nav-item[data-page]').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            navigateToPage(link.dataset.page);
-        });
-    });
-
     // --- Mobile Menu Toggle (This is the fix) ---
     const mobileNavToggle = document.getElementById('mobileNavToggle');
     if (mobileNavToggle) {
@@ -1531,6 +1523,12 @@ function setupEventListeners() {
     // --- Delegated Event Listeners for Dynamic Content ---
     document.body.addEventListener('click', (e) => {
         const target = e.target;
+
+        const navLink = target.closest('.nav-item[data-page]');
+        if (navLink) {
+            e.preventDefault();
+            navigateToPage(navLink.dataset.page);
+        }
         const editClientBtn = target.closest('.edit-client-btn');
         if (editClientBtn) handleEditClient(editClientBtn.dataset.id);
 
