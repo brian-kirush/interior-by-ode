@@ -65,8 +65,12 @@ async function apiFetch(url, options = {}) {
         if (!response.ok) {
             // Try to get detailed error, but fallback gracefully.
             const errorText = await response.text();
-            const errorData = JSON.parse(errorText || '{}');
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            if (errorText) {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.message || errorMessage;
+            }
+            throw new Error(errorMessage);
         }
 
         // Handle responses with no content (e.g., DELETE requests)
