@@ -219,6 +219,9 @@ function hideLoginScreen() {
  * @param {string} pageId - The ID of the page to show.
  */
 function navigateToPage(pageId) {
+    // Close mobile menu if open before navigating
+    document.getElementById('mobileNavMenu')?.classList.remove('open');
+
     // Hide all pages
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
     
@@ -233,9 +236,6 @@ function navigateToPage(pageId) {
     document.querySelectorAll('.nav-item').forEach(link => {
         link.classList.toggle('active', link.dataset.page === pageId);
     });
-
-    // Close mobile menu if open
-    document.getElementById('mobileNavMenu').classList.remove('open');
 
     // Load data for the new page
     loadPageData(pageId);
@@ -1432,15 +1432,6 @@ function applyMobileFixes() {
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- General Setup ---
-    const loader = document.querySelector('.loader');
-    if (loader) {
-        // Ensure loader is hidden if something goes wrong with the animation
-        setTimeout(() => {
-            loader.style.display = 'none';
-        }, 4500);
-    }
-
     // Apply mobile/responsive fixes after the DOM is fully parsed
     document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
     document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
@@ -1448,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
 
     // --- Start the App ---
-    initializeApp();
+    initializeApp(); // This is the single entry point for the application.
 });
 
 /**
@@ -1456,14 +1447,14 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function initializeApp() {
     // Apply mobile/responsive fixes first
-    applyMobileFixes();
+    applyMobileFixes(); // This will remove the floating button.
 
     // Set up all event listeners
-    setupEventListeners();
+    setupEventListeners(); // This sets up listeners on static elements.
 
     // Check user session and load initial page
     const isLoggedIn = await checkSession();
-    if (isLoggedIn) {
+    if (isLoggedIn) { // If logged in, navigate to the default page.
         navigateToPage(state.currentPage);
         document.querySelector('.app-container').style.opacity = '1';
     } else {
@@ -1478,14 +1469,6 @@ async function initializeApp() {
  * Centralized function to set up all event listeners for the app.
  */
 function setupEventListeners() {
-    // --- Authentication ---
-    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
-    document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
-    document.getElementById('logoutBtnMobile')?.addEventListener('click', handleLogout);
-    document.getElementById('password')?.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') handleLogin();
-    });
-
     // --- Navigation ---
     document.querySelectorAll('.nav-item[data-page]').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -1494,7 +1477,7 @@ function setupEventListeners() {
         });
     });
 
-    // --- Mobile Menu Toggle ---
+    // --- Mobile Menu Toggle (This is the fix) ---
     const mobileNavToggle = document.getElementById('mobileNavToggle');
     if (mobileNavToggle) {
         mobileNavToggle.addEventListener('click', (e) => {
@@ -1503,6 +1486,13 @@ function setupEventListeners() {
         });
     }
 
+    // --- Authentication ---
+    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+    document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+    document.getElementById('logoutBtnMobile')?.addEventListener('click', handleLogout);
+    document.getElementById('password')?.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') handleLogin();
+    });
     // --- Modals ---
     setupModal('newProjectModal', 'newProjectBtn', 'cancelNewProjectBtn');
     setupModal('editClientModal', null, 'cancelEditClientBtn');
