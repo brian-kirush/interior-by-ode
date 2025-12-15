@@ -1431,8 +1431,7 @@ function applyMobileFixes() {
  * Initializes the application, sets up event listeners.
  */
 async function initializeApp() {
-    const isLoggedIn = await checkSession();
-    applyMobileFixes();
+    const isLoggedIn = await checkSession();    
 
     if (isLoggedIn) {
         // Load initial page data if the user is logged in
@@ -1468,6 +1467,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 4500);
     }
 
+    // Apply mobile/responsive fixes after the DOM is fully parsed
+    applyMobileFixes();
+
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
     setupDashboardNavigation();
@@ -1491,22 +1493,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Navigation ---
     document.querySelectorAll('.nav-item[data-page]').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            // Prevent the main menu toggle button from triggering navigation
-            if (link.id === 'mobileNavToggle') {
-                return;
-            }
-            navigateToPage(link.dataset.page);
-        });
+        link.addEventListener('click', (e) => { e.preventDefault(); navigateToPage(link.dataset.page); });
     });
 
-    // --- Mobile Menu Toggle ---
+    // --- Mobile Menu Toggle (Corrected) ---
     const mobileNavToggle = document.getElementById('mobileNavToggle');
-    const mobileNavMenu = document.getElementById('mobileNavMenu');
-    mobileNavToggle?.addEventListener('click', () => {
-        mobileNavMenu.classList.toggle('open');
-    });
+    if (mobileNavToggle) {
+        mobileNavToggle.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent any default link behavior
+            document.getElementById('mobileNavMenu')?.classList.toggle('open');
+        });
+    }
 
     // --- Responsive Fixes ---
     // Make the calculator table horizontally scrollable on mobile
