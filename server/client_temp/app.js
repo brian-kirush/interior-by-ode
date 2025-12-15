@@ -154,7 +154,11 @@ async function handleLogin() {
         if (result.success) {
             state.currentUser = result.data.user;
             hideLoginScreen();
-            initializeApp(); // Re-initialize app data after login
+            // Instead of re-initializing the whole app, just load the default page
+            // This prevents re-attaching all event listeners.
+            navigateToPage(state.currentPage);
+            document.querySelector('.app-container').style.opacity = '1';
+
         } else {
             loginMessage.textContent = result.message || 'Login failed.';
             loginMessage.style.display = 'block';
@@ -1435,14 +1439,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
     document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
 
-    // --- Start the App ---
-    initializeApp(); // This is the single entry point for the application.
-});
-
-/**
- * Initializes the application, sets up event listeners.
- */
-async function initializeApp() {
     // Apply mobile/responsive fixes first
     applyMobileFixes(); // This will remove the floating button.
 
@@ -1460,7 +1456,13 @@ async function initializeApp() {
             setTimeout(() => document.getElementById('email')?.focus(), 500);
         }
     }
-}
+});
+
+/**
+ * Initializes the application, sets up event listeners.
+ * This function is now part of the DOMContentLoaded event listener.
+ */
+async function initializeApp() {} // This function is kept for reference but its logic is moved.
 
 /**
  * Centralized function to set up all event listeners for the app.
