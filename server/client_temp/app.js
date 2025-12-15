@@ -1493,6 +1493,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.nav-item[data-page]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
+            // Prevent the main menu toggle button from triggering navigation
+            if (link.id === 'mobileNavToggle') {
+                return;
+            }
             navigateToPage(link.dataset.page);
         });
     });
