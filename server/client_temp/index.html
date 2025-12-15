@@ -184,20 +184,21 @@
 
         /* Sidebar with Animation */
         .sidebar {
-            display: none !important; /* Hide sidebar on all views */
+            width: 280px;
+            background: linear-gradient(180deg, var(--jungle-green) 0%, var(--jungle-dark-green) 100%);
+            padding-top: 35px;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none; /* Hide on mobile by default */
         }
         
         @media (min-width: 992px) {
             .sidebar {
-                display: none !important; /* Ensure sidebar is hidden on desktop */
+                display: block;
             }
         }
 
         .sidebar-header {
-            padding: 0 25px 25px;
-            border-bottom: 2px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
-            text-align: center;
+            display: none; /* Hide the original sidebar header */
         }
 
         .sidebar-header h2 {
@@ -286,7 +287,7 @@
             background: transparent;
             width: 100%;
             overflow-x: hidden;
-            margin-left: 0 !important; /* Ensure no margin from a hidden sidebar */
+            margin-left: 280px;
         }
 
         /* Header */
@@ -1113,7 +1114,9 @@
             .sidebar {
                 width: 250px;
             }
-            /* .main-content margin is handled by the main rule now */
+            .main-content {
+                margin-left: 250px;
+            }
         }
 
         @media (max-width: 992px) {
@@ -1124,14 +1127,20 @@
             .sidebar.active {
                 transform: translateX(0);
             }
+            .main-content {
+                margin-left: 0;
+            }
+            .mobile-menu-btn {
+                display: block;
+            }
         }
 
         @media (max-width: 768px) {
             .content {
-                padding: 20px;
+                padding: 20px 15px;
             }
             .page-header {
-                padding: 25px 18px;
+                padding: 25px 20px;
             }
             .page-header h2 {
                 font-size: var(--font-size-2xl);
@@ -1151,13 +1160,13 @@
                 gap: 18px;
             }
             .calculator-container {
-                padding: 20px;
+                padding: 20px 15px;
             }
             .calculator-actions {
                 flex-direction: column;
             }
             .btn {
-                width: 100%;
+                width: auto; /* Revert button width for mobile */
                 justify-content: center;
             }
             .header {
@@ -1183,7 +1192,7 @@
 
         /* Mobile Menu Button */
         .mobile-menu-btn {
-            display: none !important; /* Hide mobile menu button */
+            display: none;
             position: fixed;
             top: 15px;
             left: 15px;
@@ -1206,7 +1215,7 @@
         }
 
         @media (max-width: 992px) {
-            /* Button is now permanently hidden */
+            .mobile-menu-btn { display: block; }
         }
 
         /* Mobile dropdown navigation */
@@ -1388,7 +1397,7 @@
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
+    <!-- Loading Screen (commented out for faster testing)
     <div class="loader">
         <div class="loader-content">
             <div class="loader-spinner"></div>
@@ -1396,6 +1405,7 @@
             <p>Loading Design Management System...</p>
         </div>
     </div>
+    -->
 
     <!-- Mobile Menu Button -->
     <button class="mobile-menu-btn" id="mobileMenuBtn">
@@ -1878,6 +1888,5 @@
         <div id="notificationMessage">Operation completed successfully!</div>
     </div>
 
-    <script src="./app.js"></script>
 </body>
 </html>
