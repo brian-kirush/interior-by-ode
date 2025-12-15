@@ -1525,11 +1525,6 @@ function setupEventListeners() {
             navigateToPage(navLink.dataset.page);
         }
 
-        // --- Mobile Sidebar Toggle ---
-        if (target.closest('#mobileMenuBtn')) {
-            document.getElementById('sidebar')?.classList.toggle('active');
-        }
-
         const editClientBtn = target.closest('.edit-client-btn');
         if (editClientBtn) handleEditClient(editClientBtn.dataset.id);
 
