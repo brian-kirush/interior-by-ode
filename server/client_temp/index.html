@@ -336,7 +336,11 @@
 
         /* Sidebar with Animation */
         .sidebar {
-            display: none;
+            position: fixed; /* Keep sidebar in place */
+            left: 0;
+            top: 0;
+            height: 100%;
+            z-index: 100; /* Ensure it's on top */
         }
 
         .sidebar-header {
