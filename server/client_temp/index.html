@@ -184,16 +184,12 @@
 
         /* Sidebar with Animation */
         .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, var(--jungle-green) 0%, var(--jungle-dark-green) 100%);
-            padding-top: 35px;
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            display: none; /* Hide on mobile by default */
+            display: none !important; /* Hide sidebar on all views */
         }
         
         @media (min-width: 992px) {
             .sidebar {
-                display: block;
+                display: none !important; /* Ensure sidebar is hidden on desktop */
             }
         }
 
@@ -290,6 +286,7 @@
             background: transparent;
             width: 100%;
             overflow-x: hidden;
+            margin-left: 0 !important; /* Ensure no margin from a hidden sidebar */
         }
 
         /* Header */
@@ -1116,9 +1113,7 @@
             .sidebar {
                 width: 250px;
             }
-            .main-content {
-                margin-left: 250px;
-            }
+            /* .main-content margin is handled by the main rule now */
         }
 
         @media (max-width: 992px) {
@@ -1128,9 +1123,6 @@
             }
             .sidebar.active {
                 transform: translateX(0);
-            }
-            .mobile-menu-btn {
-                display: block;
             }
         }
 
@@ -1191,7 +1183,7 @@
 
         /* Mobile Menu Button */
         .mobile-menu-btn {
-            display: none;
+            display: none !important; /* Hide mobile menu button */
             position: fixed;
             top: 15px;
             left: 15px;
@@ -1214,9 +1206,7 @@
         }
 
         @media (max-width: 992px) {
-            .mobile-menu-btn {
-                display: block;
-            }
+            /* Button is now permanently hidden */
         }
 
         /* Mobile dropdown navigation */
