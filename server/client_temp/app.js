@@ -158,8 +158,8 @@ async function handleLogin() {
         if (result.success) {
             state.currentUser = result.data.user;
             setupEventListeners(); // CRITICAL FIX: Re-initialize listeners after login.
-            hideLoginScreen();
-            document.querySelector('.app-container').style.opacity = '1'; // CRITICAL FIX: Make app visible after login.
+            hideLoginScreen(); // This will also show the app container.
+            navigateToPage(state.currentPage); // Load initial page data.
         } else {
             loginMessage.textContent = result.message || 'Login failed.';
             loginMessage.style.display = 'block';
@@ -195,8 +195,8 @@ async function checkSession() {
         const result = await apiFetch(`${API_BASE_URL}/auth/check-session`);
         if (result.success) {
             state.currentUser = result.data;
-            hideLoginScreen();
-            document.querySelector('.app-container').style.opacity = '1'; // CRITICAL FIX: Make app visible on session success.
+            // The hideLoginScreen function now handles making the app visible.
+            hideLoginScreen(); 
             return true;
         }
     } catch (error) {
@@ -1449,7 +1449,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isLoggedIn) { // If logged in, navigate to the default page.
         setupEventListeners(); // Setup listeners for the already logged-in user.
         navigateToPage(state.currentPage);
-        // The hideLoginScreen() call within checkSession already handles this.
     } else {
         showLoginScreen();
         if (state.isIOS) {
