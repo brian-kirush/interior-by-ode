@@ -2267,6 +2267,52 @@
         <div id="notificationMessage">Operation completed successfully!</div>
     </div>
 
-    <script src="./app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-item');
+            const pages = document.querySelectorAll('.page');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content');
+
+            function switchPage(pageId) {
+                // Switch active page
+                pages.forEach(page => {
+                    page.classList.remove('active');
+                });
+                const newActivePage = document.getElementById(pageId + '-page');
+                if (newActivePage) {
+                    newActivePage.classList.add('active');
+                }
+
+                // Switch active nav link
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.page === pageId) {
+                        link.classList.add('active');
+                    }
+                });
+
+                // Close sidebar on mobile after navigation
+                if (window.innerWidth <= 992) {
+                    sidebar.classList.remove('active');
+                }
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const pageId = this.dataset.page;
+                    if (pageId) {
+                        switchPage(pageId);
+                    }
+                });
+            });
+
+            mobileMenuBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
+        });
+    </script>
 </body>
 </html>
