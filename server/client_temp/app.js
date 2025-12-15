@@ -1499,24 +1499,6 @@ function setupEventListeners() {
         });
     });
 
-    // --- Navigation (Direct Listeners for Reliability) ---
-    const handleNavClick = (e) => {
-        const navLink = e.target.closest('.nav-item[data-page]');
-        if (navLink) {
-            e.preventDefault();
-            navigateToPage(navLink.dataset.page);
-        }
-    };
-
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.addEventListener('click', handleNavClick);
-    }
-    const mobileNav = document.getElementById('mobileNavMenu');
-    if (mobileNav) {
-        mobileNav.addEventListener('click', handleNavClick);
-    }
-
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
@@ -1535,6 +1517,18 @@ function setupEventListeners() {
     // --- Delegated Event Listeners for Dynamic Content ---
     document.body.addEventListener('click', (e) => {
         const target = e.target;
+
+        // --- Centralized Navigation Handling ---
+        const navLink = target.closest('.nav-item[data-page]');
+        if (navLink) {
+            e.preventDefault();
+            navigateToPage(navLink.dataset.page);
+        }
+
+        // --- Mobile Sidebar Toggle ---
+        if (target.closest('#mobileMenuBtn')) {
+            document.getElementById('sidebar')?.classList.toggle('active');
+        }
 
         const editClientBtn = target.closest('.edit-client-btn');
         if (editClientBtn) handleEditClient(editClientBtn.dataset.id);
