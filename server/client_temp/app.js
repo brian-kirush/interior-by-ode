@@ -1432,7 +1432,7 @@ function applyMobileFixes() {
  * Initializes the application, sets up event listeners.
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Apply mobile/responsive fixes after the DOM is fully parsed
     document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
     document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
