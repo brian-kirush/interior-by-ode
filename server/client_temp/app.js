@@ -1431,6 +1431,17 @@ function applyMobileFixes() {
  * Initializes the application, sets up event listeners.
  */
 async function initializeApp() {
+    document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
+    document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
+    document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
+    document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
+}
+
+
+/**
+ * Initializes the application, sets up event listeners.
+ */
+async function initializeApp() {
     const isLoggedIn = await checkSession();    
 
     if (isLoggedIn) {
@@ -1444,17 +1455,6 @@ async function initializeApp() {
         }
     }
 }
-
-/**
- * Adds click listeners to dashboard cards to navigate to relevant pages.
- */
-function setupDashboardNavigation() {
-    document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
-    document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
-    document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
-    document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
-}
-
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1472,7 +1472,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
-    setupDashboardNavigation();
+    initializeApp(); // This will now correctly set up the initial state
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
     document.querySelectorAll('input.form-control').forEach(input => {
         if (state.isIOS) { // Apply keyboard fixes primarily for iOS where it's most problematic
@@ -1627,5 +1627,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Start the App ---
-    initializeApp();
+    // Set up dashboard card navigation
+    document.getElementById('activeProjectsCard')?.addEventListener('click', () => navigateToPage('projects'));
+    document.getElementById('monthlyRevenueCard')?.addEventListener('click', () => navigateToPage('invoices'));
+    document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
+    document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
 });
