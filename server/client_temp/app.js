@@ -158,8 +158,8 @@ async function handleLogin() {
         if (result.success) {
             state.currentUser = result.data.user;
             setupEventListeners(); // CRITICAL FIX: Re-initialize listeners after login.
-            hideLoginScreen(); // This will also show the app container.
-            navigateToPage(state.currentPage); // Load initial page data.
+            hideLoginScreen();
+            document.querySelector('.app-container').style.opacity = '1'; // CRITICAL FIX: Make app visible after login.
         } else {
             loginMessage.textContent = result.message || 'Login failed.';
             loginMessage.style.display = 'block';
@@ -195,8 +195,8 @@ async function checkSession() {
         const result = await apiFetch(`${API_BASE_URL}/auth/check-session`);
         if (result.success) {
             state.currentUser = result.data;
-            document.querySelector('.app-container').style.opacity = '1'; // CRITICAL FIX: Make app visible on session success.
             hideLoginScreen();
+            document.querySelector('.app-container').style.opacity = '1'; // CRITICAL FIX: Make app visible on session success.
             return true;
         }
     } catch (error) {
