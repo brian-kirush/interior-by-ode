@@ -260,10 +260,21 @@ function navigateToPage(pageId) {
  * Fetches and renders data based on the current page.
  * @param {string} pageId - The ID of the page being loaded.
  */
+// Track if dashboard is already loading to prevent duplicate requests
+let isDashboardLoading = false;
+
 function loadPageData(pageId) {
+    // Skip if we're already loading the dashboard to prevent duplicates
+    if (pageId === 'dashboard' && isDashboardLoading) {
+        return;
+    }
+
     switch (pageId) {
         case 'dashboard':
-            loadDashboardStats();
+            isDashboardLoading = true;
+            loadDashboardStats().finally(() => {
+                isDashboardLoading = false;
+            });
             break;
         case 'clients':
             loadClients();
@@ -284,12 +295,13 @@ function loadPageData(pageId) {
             loadSettings();
             break;
         case 'calculator':
+            // Load clients for the calculator's client select
             loadClientsForSelect('quotationClientSelect');
             break;
+        default:
+            console.warn(`No data loader for page: ${pageId}`);
     }
 }
-
-// --- DATA LOADING & RENDERING ---
 
 async function loadDashboardStats() {
     try {
@@ -665,20 +677,76 @@ async function showDocumentViewer(docId, docType) {
     }
 }
 
-async function showQuotationDetail(quotationId) {
+/**
+ * A generic function to display a detailed view of a document (Quotation or Invoice).
+ * @param {string} docType - 'quotation' or 'invoice'.
+ * @param {string|number} docId - The ID of the document.
+ */
+async function showDocumentDetail(docType, docId) {
+    const config = {
+        quotation: {
+            listContainerId: 'quotationsListContainer',
+            detailContainerId: 'quotationDetailContainer',
+            contentId: 'quotationContent',
+            backBtnId: 'backToQuotesListBtn',
+            downloadBtnId: 'downloadQuotationBtn',
+            printBtnId: 'printQuotationBtn',
+            extraButtons: [],
+            title: (doc) => `Quotation #${doc.quotation_number}`,
+            details: (doc) => `
+                <p><strong>Client:</strong> ${doc.client_name}</p>
+                <p><strong>Date:</strong> ${formatDate(doc.created_at)}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${doc.status}">${doc.status}</span></p>
+            `,
+            summary: (doc) => `
+                <p>Subtotal: <strong>${formatCurrency(doc.subtotal)}</strong></p>
+                <p>Tax (${doc.tax_rate}%): <strong>${formatCurrency(doc.tax_amount)}</strong></p>
+                <p>Discount: <strong>- ${formatCurrency(doc.discount_amount)}</strong></p>
+                <h3>Total: <strong>${formatCurrency(doc.total)}</strong></h3>
+            `,
+        },
+        invoice: {
+            listContainerId: 'invoicesListContainer',
+            detailContainerId: 'invoiceDetailContainer',
+            contentId: 'invoiceContent',
+            backBtnId: 'backToInvoicesListBtn',
+            downloadBtnId: 'downloadInvoiceBtn',
+            printBtnId: 'printInvoiceBtn',
+            extraButtons: [
+                { id: 'markAsPaidBtn', label: 'Mark as Paid', action: () => updateInvoiceStatus(docId, 'paid') },
+                { id: 'markAsOverdueBtn', label: 'Mark as Overdue', action: () => updateInvoiceStatus(docId, 'overdue') },
+            ],
+            title: (doc) => `Invoice #${doc.invoice_number}`,
+            details: (doc) => `
+                <p><strong>Client:</strong> ${doc.client_name}</p>
+                <p><strong>Issue Date:</strong> ${formatDate(doc.issue_date)}</p>
+                <p><strong>Due Date:</strong> ${formatDate(doc.due_date)}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${doc.status}">${doc.status}</span></p>
+            `,
+            summary: (doc) => `
+                <p>Subtotal: <strong>${formatCurrency(doc.subtotal)}</strong></p>
+                <p>Tax: <strong>${formatCurrency(doc.tax_amount)}</strong></p>
+                <h3>Total: <strong>${formatCurrency(doc.total)}</strong></h3>
+            `,
+        }
+    };
+
+    const docConfig = config[docType];
+    if (!docConfig) return;
+
     try {
-        const result = await apiFetch(`${API_BASE_URL}/quotations/${quotationId}`);
+        const result = await apiFetch(`${API_BASE_URL}/${docType}s/${docId}`);
         if (!result.success) {
-            return showNotification('Failed to load quotation.', 'error');
+            return showNotification(`Failed to load ${docType}.`, 'error');
         }
 
-        const quotation = result.data;
-        const listContainer = document.getElementById('quotationsListContainer');
-        const detailContainer = document.getElementById('quotationDetailContainer');
-        const contentDiv = document.getElementById('quotationContent');
+        const doc = result.data;
+        const listContainer = document.getElementById(docConfig.listContainerId);
+        const detailContainer = document.getElementById(docConfig.detailContainerId);
+        const contentDiv = document.getElementById(docConfig.contentId);
 
         // Build items table
-        let itemsHtml = quotation.items.map(item => `
+        let itemsHtml = doc.items.map(item => `
             <tr>
                 <td>${item.description}</td>
                 <td>${item.quantity}</td>
@@ -686,26 +754,19 @@ async function showQuotationDetail(quotationId) {
                 <td>${formatCurrency(item.total)}</td>
             </tr>
         `).join('');
-
-        // Build detail view
+        
+        // Build full detail view HTML
         contentDiv.innerHTML = `
             <div style="padding: 20px;">
-                <h2>Quotation #${quotation.quotation_number}</h2>
-                <p><strong>Client:</strong> ${quotation.client_name}</p>
-                <p><strong>Date:</strong> ${formatDate(quotation.created_at)}</p>
-                <p><strong>Status:</strong> <span class="status-badge status-${quotation.status}">${quotation.status}</span></p>
+                <h2>${docConfig.title(doc)}</h2>
+                ${docConfig.details(doc)}
                 <hr>
                 <h4>Items</h4>
                 <table class="items-table">
                     <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
                     <tbody>${itemsHtml}</tbody>
                 </table>
-                <div class="summary" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
-                    <p>Subtotal: <strong>${formatCurrency(quotation.subtotal)}</strong></p>
-                    <p>Tax (${quotation.tax_rate}%): <strong>${formatCurrency(quotation.tax_amount)}</strong></p>
-                    <p>Discount: <strong>- ${formatCurrency(quotation.discount_amount)}</strong></p>
-                    <h3>Total: <strong>${formatCurrency(quotation.total)}</strong></h3>
-                </div>
+                <div class="summary" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">${docConfig.summary(doc)}</div>
             </div>
         `;
 
@@ -713,95 +774,25 @@ async function showQuotationDetail(quotationId) {
         listContainer.style.display = 'none';
         detailContainer.style.display = 'block';
 
-        // Setup button handlers
-        document.getElementById('backToQuotesListBtn').onclick = () => {
+        // Setup common button handlers
+        document.getElementById(docConfig.backBtnId).onclick = () => {
             listContainer.style.display = 'block';
             detailContainer.style.display = 'none';
         };
-
-        document.getElementById('downloadQuotationBtn').onclick = () => {
-            window.location.href = `${API_BASE_URL}/quotations/${quotationId}/download`;
+        document.getElementById(docConfig.downloadBtnId).onclick = () => {
+            window.location.href = `${API_BASE_URL}/${docType}s/${docId}/download`;
         };
-
-        document.getElementById('printQuotationBtn').onclick = () => {
-            window.print();
-        };
-    } catch (error) {
-        console.error('Failed to show quotation detail:', error);
-    }
-}
-
-async function showInvoiceDetail(invoiceId) {
-    try {
-        const result = await apiFetch(`${API_BASE_URL}/invoices/${invoiceId}`);
-        if (!result.success) {
-            return showNotification('Failed to load invoice.', 'error');
-        }
-
-        const invoice = result.data;
-        const listContainer = document.getElementById('invoicesListContainer');
-        const detailContainer = document.getElementById('invoiceDetailContainer');
-        const contentDiv = document.getElementById('invoiceContent');
-
-        // Build items table
-        let itemsHtml = invoice.items.map(item => `
-            <tr>
-                <td>${item.description}</td>
-                <td>${item.quantity}</td>
-                <td>${formatCurrency(item.unit_price)}</td>
-                <td>${formatCurrency(item.total)}</td>
-            </tr>
-        `).join('');
-
-        // Build detail view
-        contentDiv.innerHTML = `
-            <div style="padding: 20px;">
-                <h2>Invoice #${invoice.invoice_number}</h2>
-                <p><strong>Client:</strong> ${invoice.client_name}</p>
-                <p><strong>Issue Date:</strong> ${formatDate(invoice.issue_date)}</p>
-                <p><strong>Due Date:</strong> ${formatDate(invoice.due_date)}</p>
-                <p><strong>Status:</strong> <span class="status-badge status-${invoice.status}">${invoice.status}</span></p>
-                <hr>
-                <h4>Items</h4>
-                <table class="items-table">
-                    <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
-                    <tbody>${itemsHtml}</tbody>
-                </table>
-                <div class="summary" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
-                    <p>Subtotal: <strong>${formatCurrency(invoice.subtotal)}</strong></p>
-                    <p>Tax: <strong>${formatCurrency(invoice.tax_amount)}</strong></p>
-                    <h3>Total: <strong>${formatCurrency(invoice.total)}</strong></h3>
-                </div>
-            </div>
-        `;
-
-        // Show detail, hide list
-        listContainer.style.display = 'none';
-        detailContainer.style.display = 'block';
-
-        // Setup button handlers
-        document.getElementById('backToInvoicesListBtn').onclick = () => {
-            listContainer.style.display = 'block';
-            detailContainer.style.display = 'none';
-        };
-
-        document.getElementById('downloadInvoiceBtn').onclick = () => {
-            window.location.href = `${API_BASE_URL}/invoices/${invoiceId}/download`;
-        };
-
-        document.getElementById('printInvoiceBtn').onclick = () => {
+        document.getElementById(docConfig.printBtnId).onclick = () => {
             window.print();
         };
 
-        document.getElementById('markAsPaidBtn').onclick = () => {
-            updateInvoiceStatus(invoiceId, 'paid');
-        };
-
-        document.getElementById('markAsOverdueBtn').onclick = () => {
-            updateInvoiceStatus(invoiceId, 'overdue');
-        };
+        // Setup extra buttons
+        docConfig.extraButtons.forEach(btn => {
+            const buttonEl = document.getElementById(btn.id);
+            if (buttonEl) buttonEl.onclick = btn.action;
+        });
     } catch (error) {
-        console.error('Failed to show invoice detail:', error);
+        console.error(`Failed to show ${docType} detail:`, error);
     }
 }
 
@@ -1414,13 +1405,7 @@ function applyMobileFixes() {
         document.body.classList.add('is-ios');
     }
 
-    // DO NOT remove the mobile menu button - keep it for functionality
-    // const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    // if (mobileMenuBtn) {
-    //     mobileMenuBtn.remove();
-    // }
-
-    // Set custom viewport height variable
+    // Set custom viewport height variable for better mobile layout consistency
     const setVh = () => {
         const vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -1452,10 +1437,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pendingTasksCard')?.addEventListener('click', () => navigateToPage('tasks'));
     document.getElementById('clientSatisfactionCard')?.addEventListener('click', () => navigateToPage('clients'));
 
-    // Apply mobile/responsive fixes first
-    applyMobileFixes(); // This will remove the floating button.
+    // Apply mobile/responsive fixes
+    applyMobileFixes();
 
-    // Set up all event listeners
+    // Set up all static event listeners
     setupEventListeners(); // This sets up listeners on static elements.
 
     // Check user session and load initial page
@@ -1514,6 +1499,24 @@ function setupEventListeners() {
         });
     });
 
+    // --- Navigation (Direct Listeners for Reliability) ---
+    const handleNavClick = (e) => {
+        const navLink = e.target.closest('.nav-item[data-page]');
+        if (navLink) {
+            e.preventDefault();
+            navigateToPage(navLink.dataset.page);
+        }
+    };
+
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.addEventListener('click', handleNavClick);
+    }
+    const mobileNav = document.getElementById('mobileNavMenu');
+    if (mobileNav) {
+        mobileNav.addEventListener('click', handleNavClick);
+    }
+
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
@@ -1533,11 +1536,6 @@ function setupEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
 
-        const navLink = target.closest('.nav-item[data-page]');
-        if (navLink) {
-            e.preventDefault();
-            navigateToPage(navLink.dataset.page);
-        }
         const editClientBtn = target.closest('.edit-client-btn');
         if (editClientBtn) handleEditClient(editClientBtn.dataset.id);
 
@@ -1554,7 +1552,7 @@ function setupEventListeners() {
         if (deleteProjectBtn) handleDeleteProject(deleteProjectBtn.dataset.id);
 
         const viewQuotationBtn = target.closest('.view-quotation-btn');
-        if (viewQuotationBtn) showQuotationDetail(viewQuotationBtn.dataset.id);
+        if (viewQuotationBtn) showDocumentDetail('quotation', viewQuotationBtn.dataset.id);
 
         const editQuotationBtn = target.closest('.edit-quotation-btn');
         if (editQuotationBtn) editQuotation(editQuotationBtn.dataset.id);
@@ -1563,7 +1561,7 @@ function setupEventListeners() {
         if (deleteQuotationBtn) handleDeleteQuotation(deleteQuotationBtn.dataset.id);
 
         const viewInvoiceBtn = target.closest('.view-invoice-btn');
-        if (viewInvoiceBtn) showInvoiceDetail(viewInvoiceBtn.dataset.id);
+        if (viewInvoiceBtn) showDocumentDetail('invoice', viewInvoiceBtn.dataset.id);
 
         const editInvoiceBtn = target.closest('.edit-invoice-btn');
         if (editInvoiceBtn) editInvoice(editInvoiceBtn.dataset.id);

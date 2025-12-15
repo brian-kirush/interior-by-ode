@@ -1350,6 +1350,41 @@
             }
         }
 
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 101;
+            background: var(--jungle-green);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            font-size: var(--font-size-lg);
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            min-width: 45px;
+            min-height: 45px;
+        }
+
+        .mobile-menu-btn:hover {
+            background: var(--jungle-dark-green);
+            transform: scale(1.1);
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+            }
+        }
+
         /* Mobile dropdown navigation */
         .mobile-nav-toggle {
             display: inline-flex;
@@ -1537,6 +1572,11 @@
             <p>Loading Design Management System...</p>
         </div>
     </div>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
+        <i class="fas fa-bars"></i>
+    </button>
 
     <div class="app-container">
         <!-- Sidebar -->
