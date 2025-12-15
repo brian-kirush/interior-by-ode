@@ -195,6 +195,7 @@ async function checkSession() {
         const result = await apiFetch(`${API_BASE_URL}/auth/check-session`);
         if (result.success) {
             state.currentUser = result.data;
+            document.querySelector('.app-container').style.opacity = '1'; // CRITICAL FIX: Make app visible on session success.
             hideLoginScreen();
             return true;
         }
