@@ -807,13 +807,218 @@ async function updateInvoiceStatus(invoiceId, status) {
 }
 
 async function editQuotation(quotationId) {
-    showNotification('Edit quotation feature coming soon!', 'error');
-    // TODO: Implement edit functionality
+    try {
+        // mark current editing context
+        state.currentEdit = { type: 'quotation', id: quotationId };
+        // show save button and hide generate when editing
+        document.getElementById('saveEditBtn')?.style.setProperty('display', 'inline-block');
+        document.getElementById('generateQuoteBtn')?.style.setProperty('display', 'none');
+
+        const result = await apiFetch(`${API_BASE_URL}/quotations/${quotationId}`);
+        if (!result.success) {
+            return showNotification('Failed to fetch quotation for editing.', 'error');
+        }
+
+        const quotation = result.data;
+
+        // If there's an edit modal present in the DOM, populate and open it
+        const modal = document.getElementById('editQuotationModal');
+        if (modal) {
+            // Populate common fields if present
+            const idInput = document.getElementById('editQuotationId');
+            if (idInput) idInput.value = quotation.id || '';
+
+            const clientSelect = document.getElementById('editQuotationClient');
+            if (clientSelect) clientSelect.value = quotation.client_id || '';
+
+            const taxInput = document.getElementById('editQuotationTaxRate');
+            if (taxInput) taxInput.value = quotation.tax_rate ?? state.taxRate;
+
+            const discountInput = document.getElementById('editQuotationDiscount');
+            if (discountInput) discountInput.value = quotation.discount_amount ?? state.discount;
+
+            // If the modal has an items container, try to render items there, otherwise store in state
+            if (typeof renderQuotationEditItems === 'function') {
+                renderQuotationEditItems(quotation.items || []);
+            } else {
+                // Fallback: put items into the calculator state so the user can edit
+                state.items = (quotation.items || []).map((it, idx) => ({
+                    id: `item-${Date.now()}-${idx}`,
+                    description: it.description || '',
+                    unit: it.unit || 'pcs',
+                    quantity: it.quantity || 1,
+                    unit_price: it.unit_price || 0
+                }));
+            }
+
+            openModal('editQuotationModal');
+            return;
+        }
+
+        // Fallback behaviour: load quotation items into the calculator for manual edits
+        state.items = (quotation.items || []).map((it, idx) => ({
+            id: `item-${Date.now()}-${idx}`,
+            description: it.description || '',
+            unit: it.unit || 'pcs',
+            quantity: it.quantity || 1,
+            unit_price: it.unit_price || 0
+        }));
+        document.getElementById('quotationClientSelect')?.value = quotation.client_id || '';
+        document.getElementById('taxRate').value = quotation.tax_rate ?? state.taxRate;
+        document.getElementById('discount').value = quotation.discount_amount ?? state.discount;
+        renderCalculatorItems();
+        navigateToPage('calculator');
+    } catch (error) {
+        console.error('Failed to prepare quotation edit:', error);
+        showNotification('Could not start quotation edit. See console for details.', 'error');
+    }
 }
 
 async function editInvoice(invoiceId) {
-    showNotification('Edit invoice feature coming soon!', 'error');
-    // TODO: Implement edit functionality
+    try {
+        // mark current editing context
+        state.currentEdit = { type: 'invoice', id: invoiceId };
+        // show save button and hide generate when editing
+        document.getElementById('saveEditBtn')?.style.setProperty('display', 'inline-block');
+        document.getElementById('generateQuoteBtn')?.style.setProperty('display', 'none');
+
+        const result = await apiFetch(`${API_BASE_URL}/invoices/${invoiceId}`);
+        if (!result.success) {
+            return showNotification('Failed to fetch invoice for editing.', 'error');
+        }
+
+        const invoice = result.data;
+
+        // If an edit modal exists for invoices, populate it and open
+        const modal = document.getElementById('editInvoiceModal');
+        if (modal) {
+            const idInput = document.getElementById('editInvoiceId');
+            if (idInput) idInput.value = invoice.id || '';
+
+            const clientSelect = document.getElementById('editInvoiceClient');
+            if (clientSelect) clientSelect.value = invoice.client_id || '';
+
+            const issueDate = document.getElementById('editInvoiceIssueDate');
+            if (issueDate) issueDate.value = invoice.issue_date ? new Date(invoice.issue_date).toISOString().split('T')[0] : '';
+
+            const dueDate = document.getElementById('editInvoiceDueDate');
+            if (dueDate) dueDate.value = invoice.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : '';
+
+            // Populate items into invoice editor if helper exists, otherwise put into calculator
+            if (typeof renderInvoiceEditItems === 'function') {
+                renderInvoiceEditItems(invoice.items || []);
+            } else {
+                state.items = (invoice.items || []).map((it, idx) => ({
+                    id: `item-${Date.now()}-${idx}`,
+                    description: it.description || '',
+                    unit: it.unit || 'pcs',
+                    quantity: it.quantity || 1,
+                    unit_price: it.unit_price || 0
+                }));
+                document.getElementById('taxRate').value = invoice.tax_rate ?? state.taxRate;
+                renderCalculatorItems();
+            }
+
+            openModal('editInvoiceModal');
+            return;
+        }
+
+        // Fallback: load into calculator for manual editing
+        state.items = (invoice.items || []).map((it, idx) => ({
+            id: `item-${Date.now()}-${idx}`,
+            description: it.description || '',
+            unit: it.unit || 'pcs',
+            quantity: it.quantity || 1,
+            unit_price: it.unit_price || 0
+        }));
+        document.getElementById('taxRate').value = invoice.tax_rate ?? state.taxRate;
+        renderCalculatorItems();
+        navigateToPage('calculator');
+    } catch (error) {
+        console.error('Failed to prepare invoice edit:', error);
+        showNotification('Could not start invoice edit. See console for details.', 'error');
+    }
+}
+
+/**
+ * Save edits for the currently edited quotation or invoice.
+ */
+async function saveEdits() {
+    if (!state.currentEdit || !state.currentEdit.id) {
+        return showNotification('Nothing to save.', 'error');
+    }
+
+    const { type, id } = state.currentEdit;
+
+    // Build items from calculator state
+    const items = state.items.map(it => ({
+        description: it.description,
+        unit: it.unit,
+        quantity: it.quantity,
+        unit_price: it.unit_price,
+        total: (it.quantity || 0) * (it.unit_price || 0)
+    }));
+
+    if (type === 'quotation') {
+        const payload = {
+            client_id: document.getElementById('quotationClientSelect')?.value || null,
+            tax_rate: parseFloat(document.getElementById('taxRate')?.value) || state.taxRate,
+            discount_amount: parseFloat(document.getElementById('discount')?.value) || state.discount,
+            items,
+            subtotal: parseFloat(document.getElementById('subtotal')?.textContent.replace(/[^0-9.]/g, '')) || 0,
+            total: parseFloat(document.getElementById('totalAmount')?.textContent.replace(/[^0-9.]/g, '')) || 0
+        };
+
+        try {
+            const result = await apiFetch(`${API_BASE_URL}/quotations/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+            if (result.success) {
+                showNotification('Quotation updated successfully!', 'success');
+                // clear editing state and toggle buttons
+                state.currentEdit = null;
+                document.getElementById('saveEditBtn')?.style.setProperty('display', 'none');
+                document.getElementById('generateQuoteBtn')?.style.setProperty('display', 'inline-block');
+                navigateToPage('quotations');
+                loadQuotations();
+            }
+        } catch (err) {
+            console.error('Failed to save quotation edits:', err);
+            showNotification('Failed to save quotation. See console.', 'error');
+        }
+        return;
+    }
+
+    if (type === 'invoice') {
+        // Build minimal invoice payload from calculator fields where applicable
+        const payload = {
+            subtotal: parseFloat(document.getElementById('subtotal')?.textContent.replace(/[^0-9.]/g, '')) || 0,
+            tax_rate: parseFloat(document.getElementById('taxRate')?.value) || state.taxRate,
+            discount_amount: parseFloat(document.getElementById('discount')?.value) || state.discount,
+            total: parseFloat(document.getElementById('totalAmount')?.textContent.replace(/[^0-9.]/g, '')) || 0,
+            items
+        };
+
+        try {
+            const result = await apiFetch(`${API_BASE_URL}/invoices/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+            if (result.success) {
+                showNotification('Invoice updated successfully!', 'success');
+                state.currentEdit = null;
+                document.getElementById('saveEditBtn')?.style.setProperty('display', 'none');
+                document.getElementById('generateQuoteBtn')?.style.setProperty('display', 'inline-block');
+                navigateToPage('invoices');
+                loadInvoices();
+            }
+        } catch (err) {
+            console.error('Failed to save invoice edits:', err);
+            showNotification('Failed to save invoice. See console.', 'error');
+        }
+        return;
+    }
 }
 
 // --- MODAL HANDLING ---
@@ -1406,6 +1611,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveClientChangesBtn')?.addEventListener('click', handleSaveClient);
     document.getElementById('saveProjectChangesBtn')?.addEventListener('click', handleSaveProject);
     document.getElementById('saveTaskChangesBtn')?.addEventListener('click', handleSaveTask);
+    document.getElementById('saveEditBtn')?.addEventListener('click', saveEdits);
     document.getElementById('addNewClientBtn')?.addEventListener('click', handleAddNewClient);
     
     // --- Calculator Page ---

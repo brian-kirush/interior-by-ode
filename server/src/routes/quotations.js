@@ -19,6 +19,9 @@ router.post('/', validateRequest(createQuotationSchema), quotationController.cre
 // Update quotation status
 router.put('/:id/status', validateRequest(updateStatusSchema), quotationController.updateQuotationStatus);
 
+// Update full quotation (fields and items)
+router.put('/:id', validateRequest(require('../controllers/quotationSchema').updateQuotationSchema), quotationController.updateQuotation);
+
 // Download quotation PDF
 router.get('/:id/download', quotationController.downloadQuotation);
 

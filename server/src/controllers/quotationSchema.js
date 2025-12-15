@@ -26,7 +26,22 @@ const updateStatusSchema = Joi.object({
   status: Joi.string().valid('draft', 'sent', 'accepted', 'rejected', 'expired').required(),
 });
 
+const updateQuotationSchema = Joi.object({
+  client_id: Joi.string().uuid().optional(),
+  project_id: Joi.string().uuid().optional(),
+  quotation_number: Joi.string().optional(),
+  subtotal: Joi.number().min(0).optional(),
+  tax_rate: Joi.number().min(0).max(100).optional(),
+  tax_amount: Joi.number().min(0).optional(),
+  discount_amount: Joi.number().min(0).optional(),
+  total: Joi.number().min(0).optional(),
+  items: Joi.array().items(quotationItemSchema).optional(),
+  notes: Joi.string().optional(),
+  valid_until: Joi.date().iso().optional(),
+});
+
 module.exports = {
   createQuotationSchema,
   updateStatusSchema,
+  updateQuotationSchema,
 };

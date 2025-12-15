@@ -27,6 +27,22 @@ const updateInvoiceStatusSchema = Joi.object({
     status: Joi.string().valid('draft', 'sent', 'paid', 'overdue', 'cancelled').required()
 });
 
+const updateInvoiceSchema = Joi.object({
+    client_id: Joi.number().integer().positive().optional(),
+    quotation_id: Joi.number().integer().positive().optional(),
+    project_id: Joi.number().integer().positive().optional(),
+    subtotal: Joi.number().positive().optional(),
+    tax_rate: Joi.number().min(0).max(100).optional(),
+    tax_amount: Joi.number().min(0).optional(),
+    discount_amount: Joi.number().min(0).optional(),
+    total: Joi.number().positive().optional(),
+    status: Joi.string().valid('draft', 'sent', 'paid', 'overdue', 'cancelled').optional(),
+    issue_date: Joi.date().iso().optional(),
+    due_date: Joi.date().iso().optional(),
+    notes: Joi.string().allow('').max(1000).optional(),
+    items: Joi.array().items(invoiceItemSchema).optional()
+});
+
 const validateInvoice = (schema) => (req, res, next) => {
     const { error } = schema.validate(req.body, { abortEarly: false });
     if (error) {
@@ -46,5 +62,6 @@ const validateInvoice = (schema) => (req, res, next) => {
 module.exports = {
     createInvoiceSchema,
     updateInvoiceStatusSchema,
-    validateInvoice
+    validateInvoice,
+    updateInvoiceSchema
 };

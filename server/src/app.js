@@ -21,6 +21,12 @@ const globalErrorHandler = require('./controllers/errorController');
 // Initialize express app
 const app = express();
 
+// If running behind a reverse proxy (like Render or Cloudflare), enable trust proxy
+// so express-session can correctly detect secure connections and set cookies.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Middleware
 // Enable Cross-Origin Resource Sharing
 app.use(cors({
@@ -49,9 +55,11 @@ const sessionOptions = {
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
+  proxy: process.env.NODE_ENV === 'production', // ensure secure cookies are set when behind a proxy
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: 'lax', // allow cookies to be sent when navigating from the same site
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   },
   name: 'connect.sid'
@@ -91,5 +99,21 @@ app.get('*', (req, res) => {
 
 // Global error handler
 app.use(globalErrorHandler);
+
+// Final catch-all error handler (safe guard)
+// Placed after all routes and existing handlers to ensure we always log
+// and return a JSON or HTML error depending on request accept header.
+app.use((err, req, res, next) => {
+  console.error(err && err.stack ? err.stack : err);
+  // If headers already sent by previous handler, delegate to default Express handler
+  if (res.headersSent) {
+    return next(err);
+  }
+  if (req.accepts('json')) {
+    res.status(500).json({ error: 'Internal Server Error', message: err && err.message ? err.message : 'An error occurred' });
+  } else {
+    res.status(500).send('<h1>500 Internal Server Error</h1><p>Something went wrong!</p>');
+  }
+});
 
 module.exports = app;

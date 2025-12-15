@@ -149,6 +149,58 @@ const InvoiceController = {
 
         generateInvoicePdf(invoice, res);
     }),
+
+    // Update invoice (fields and optionally replace items)
+    update: catchAsync(async (req, res, next) => {
+        const { id } = req.params;
+        const { items, ...fields } = req.body;
+        const dbClient = await pool.connect();
+        try {
+            await dbClient.query('BEGIN');
+
+            // Build dynamic update clause
+            const setParts = [];
+            const values = [];
+            let idx = 1;
+            for (const [key, value] of Object.entries(fields)) {
+                if ([ 'client_id', 'quotation_id', 'project_id', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'status', 'issue_date', 'due_date', 'notes' ].includes(key)) {
+                    setParts.push(`${key} = $${idx}`);
+                    values.push(value);
+                    idx++;
+                }
+            }
+
+            if (setParts.length > 0) {
+                values.push(id);
+                const q = `UPDATE invoices SET ${setParts.join(', ')}, updated_at = NOW() WHERE id = $${idx} RETURNING *`;
+                const result = await dbClient.query(q, values);
+                if (result.rows.length === 0) {
+                    await dbClient.query('ROLLBACK');
+                    return next(new AppError('Invoice not found', 404));
+                }
+            }
+
+            if (Array.isArray(items)) {
+                await dbClient.query('DELETE FROM invoice_items WHERE invoice_id = $1', [id]);
+                for (const item of items) {
+                    await dbClient.query(
+                        `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total)
+                         VALUES ($1, $2, $3, $4, $5)`,
+                        [id, item.description || '', item.quantity || 1, item.unit_price || 0, item.total || ((item.quantity || 1) * (item.unit_price || 0))]
+                    );
+                }
+            }
+
+            await dbClient.query('COMMIT');
+            const updated = await getFullInvoiceById(id);
+            res.json({ success: true, message: 'Invoice updated successfully', data: updated });
+        } catch (error) {
+            await dbClient.query('ROLLBACK');
+            return next(new AppError('Failed to update invoice', 500, error));
+        } finally {
+            dbClient.release();
+        }
+    }),
 };
 
 module.exports = InvoiceController;

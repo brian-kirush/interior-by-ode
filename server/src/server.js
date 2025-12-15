@@ -1,4 +1,11 @@
 // server/src/server.js
+// Fail early with a helpful message if Node.js is too old for modern dependencies
+const nodeMajor = parseInt(process.version.replace(/^v/, '').split('.')[0], 10);
+if (Number.isNaN(nodeMajor) || nodeMajor < 18) {
+  console.error(`\n❌ Unsupported Node.js version: ${process.version}\nThis project requires Node.js v18 or later. Please upgrade (e.g., using nvm) and restart.\n`);
+  process.exit(1);
+}
+
 const app = require('./app');
 const logger = require('./controllers/logger');
 

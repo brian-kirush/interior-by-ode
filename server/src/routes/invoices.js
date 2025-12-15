@@ -22,6 +22,9 @@ router.post('/', validateInvoice(createInvoiceSchema), InvoiceController.create)
 // Update invoice status
 router.put('/:id/status', validateInvoice(updateInvoiceStatusSchema), InvoiceController.updateStatus);
 
+// Update full invoice (fields and items)
+router.put('/:id', validateInvoice(require('../controllers/invoiceSchema').updateInvoiceSchema), InvoiceController.update);
+
 // Delete invoice
 router.delete('/:id', InvoiceController.delete);
 

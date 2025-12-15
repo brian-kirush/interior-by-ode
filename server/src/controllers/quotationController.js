@@ -163,6 +163,61 @@ class QuotationController {
         });
     });
 
+    updateQuotation = catchAsync(async (req, res, next) => {
+        const { id } = req.params;
+        const { items, ...fields } = req.body;
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Build dynamic SET clause for provided fields
+            const setClauses = [];
+            const values = [];
+            let idx = 1;
+            for (const [key, value] of Object.entries(fields)) {
+                // Only allow specific fields to be updated
+                if ([ 'client_id', 'project_id', 'quotation_number', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'notes', 'valid_until', 'status' ].includes(key)) {
+                    setClauses.push(`${key} = $${idx}`);
+                    values.push(value);
+                    idx++;
+                }
+            }
+
+            if (setClauses.length > 0) {
+                values.push(id);
+                const query = `UPDATE quotations SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $${idx} RETURNING *`;
+                const result = await client.query(query, values);
+                if (result.rows.length === 0) {
+                    await client.query('ROLLBACK');
+                    return next(new AppError('Quotation not found', 404));
+                }
+            }
+
+            // If items provided, replace existing items
+            if (Array.isArray(items)) {
+                await client.query('DELETE FROM quotation_items WHERE quotation_id = $1', [id]);
+                for (const item of items) {
+                    await client.query(
+                        `INSERT INTO quotation_items (quotation_id, description, unit, quantity, unit_price, total)
+                         VALUES ($1, $2, $3, $4, $5, $6)`,
+                        [id, item.description || 'Item', item.unit || '', item.quantity || 1, item.unit_price || 0, (item.quantity || 1) * (item.unit_price || 0)]
+                    );
+                }
+            }
+
+            await client.query('COMMIT');
+
+            const updated = await this.getFullQuotationById(id);
+            res.json({ success: true, message: 'Quotation updated successfully', data: updated });
+        } catch (error) {
+            await client.query('ROLLBACK');
+            return next(new AppError('Failed to update quotation', 500, error));
+        } finally {
+            client.release();
+        }
+    });
+
     deleteQuotation = catchAsync(async (req, res, next) => {
         const { id } = req.params;
         const result = await pool.query(
