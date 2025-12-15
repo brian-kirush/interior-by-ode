@@ -8,7 +8,6 @@ const pgSession = require('connect-pg-simple')(session);
 const pool = require('./config/database');
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clients');
-const dashboardRoutes = require('./routes/dashboard');
 const invoiceRoutes = require('./routes/invoices');
 const projectRoutes = require('./routes/projects');
 const quotationRoutes = require('./routes/quotations');
@@ -22,44 +21,33 @@ const globalErrorHandler = require('./controllers/errorController');
 const app = express();
 
 // If running behind a reverse proxy (like Render or Cloudflare), enable trust proxy
-// so express-session can correctly detect secure connections and set cookies.
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
 // Middleware
-// Enable Cross-Origin Resource Sharing
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' ? 'https://interior-by-ode.onrender.com' : 'http://localhost:3000',
   credentials: true
 }));
-// Parse incoming JSON requests
 app.use(express.json());
 
-// Session middleware
-let sessionStore;
-try {
-  sessionStore = new pgSession({
+// Session middleware - FIXED CONFIGURATION
+const sessionOptions = {
+  store: new pgSession({
     pool: pool,
     tableName: 'session',
-    createTableIfMissing: false // Disable auto-create in production to avoid race conditions
-  });
-} catch (err) {
-  // If initialization fails (e.g. DB temporarily unavailable), log and continue
-  logger.error('Failed to initialize PostgreSQL session store, falling back to MemoryStore', err);
-  sessionStore = null;
-}
-
-const sessionOptions = {
-  store: sessionStore || new session.MemoryStore(),
+    createTableIfMissing: false, // Best practice is to create the table via a script
+    pruneSessionInterval: 60 * 60 // Clean up expired sessions every hour
+  }),
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
-  proxy: process.env.NODE_ENV === 'production', // ensure secure cookies are set when behind a proxy
+  proxy: process.env.NODE_ENV === 'production',
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax', // allow cookies to be sent when navigating from the same site
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   },
   name: 'connect.sid'
@@ -76,7 +64,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes
-// Connect all API endpoints
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/dashboard', dashboardRoutes);
