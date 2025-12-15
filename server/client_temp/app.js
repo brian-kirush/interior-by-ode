@@ -127,7 +127,6 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('en-US', options);
 }
 
-
 // --- AUTHENTICATION ---
 
 /**
@@ -211,7 +210,6 @@ function hideLoginScreen() {
     document.querySelector('.app-container').style.opacity = '1';
 }
 
-
 // --- PAGE NAVIGATION ---
 
 /**
@@ -244,7 +242,8 @@ function navigateToPage(pageId) {
 /**
  * Fetches and renders data based on the current page.
  * @param {string} pageId - The ID of the page being loaded.
- */function loadPageData(pageId) {
+ */
+function loadPageData(pageId) {
     switch (pageId) {
         case 'dashboard':
             loadDashboardStats();
@@ -1391,7 +1390,6 @@ async function handleDeleteTask(taskId) {
     }
 }
 
-
 // --- MOBILE & IOS SPECIFIC FIXES ---
 
 function applyMobileFixes() {
@@ -1399,12 +1397,11 @@ function applyMobileFixes() {
         document.body.classList.add('is-ios');
     }
 
-    // Hide the floating mobile menu button as it's not being used.
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    if (mobileMenuBtn) {
-        // More definitive than hiding: remove the element from the DOM completely.
-        mobileMenuBtn.remove();
-    }
+    // DO NOT remove the mobile menu button - keep it for functionality
+    // const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    // if (mobileMenuBtn) {
+    //     mobileMenuBtn.remove();
+    // }
 
     // Set custom viewport height variable
     const setVh = () => {
@@ -1482,9 +1479,33 @@ function setupEventListeners() {
     if (mobileNavToggle) {
         mobileNavToggle.addEventListener('click', (e) => {
             e.preventDefault();
-            document.getElementById('mobileNavMenu')?.classList.toggle('open');
+            e.stopPropagation();
+            const mobileNavMenu = document.getElementById('mobileNavMenu');
+            if (mobileNavMenu) {
+                mobileNavMenu.classList.toggle('open');
+            }
         });
     }
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', (e) => {
+        const mobileMenu = document.getElementById('mobileNavMenu');
+        const toggleBtn = document.getElementById('mobileNavToggle');
+        
+        if (mobileMenu && toggleBtn && 
+            !mobileMenu.contains(e.target) && 
+            !toggleBtn.contains(e.target) && 
+            mobileMenu.classList.contains('open')) {
+            mobileMenu.classList.remove('open');
+        }
+    });
+
+    // Also close menu when clicking a menu item
+    document.querySelectorAll('#mobileNavMenu .nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.getElementById('mobileNavMenu')?.classList.remove('open');
+        });
+    });
 
     // --- Authentication ---
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
@@ -1493,6 +1514,7 @@ function setupEventListeners() {
     document.getElementById('password')?.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') handleLogin();
     });
+    
     // --- Modals ---
     setupModal('newProjectModal', 'newProjectBtn', 'cancelNewProjectBtn');
     setupModal('editClientModal', null, 'cancelEditClientBtn');
