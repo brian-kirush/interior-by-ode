@@ -207,11 +207,17 @@ async function checkSession() {
 }
 
 function showLoginScreen() {
+    const loader = document.querySelector('.loader');
+    if (loader) loader.style.opacity = '0';
+
     document.getElementById('loginContainer').style.display = 'flex';
     document.querySelector('.app-container').style.opacity = '0';
 }
 
 function hideLoginScreen() {
+    const loader = document.querySelector('.loader');
+    if (loader) loader.style.opacity = '0';
+
     document.getElementById('loginContainer').style.display = 'none';
     document.querySelector('.app-container').style.opacity = '1'; // Make app visible
 }
@@ -1456,12 +1462,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 });
-
-/**
- * Initializes the application, sets up event listeners.
- * This function is now part of the DOMContentLoaded event listener.
- */
-async function initializeApp() {} // This function is kept for reference but its logic is moved.
 
 /**
  * Centralized function to set up all event listeners for the app.
