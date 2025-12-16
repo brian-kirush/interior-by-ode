@@ -1,32 +1,21 @@
-// app.js - Complete Backend Integration Version
+// app.js - Enhanced with Better Session Handling
 
 // Configuration
 const API_BASE_URL = window.location.origin + '/api';
-// For local testing: const API_BASE_URL = 'http://localhost:3000/api';
+console.log('API Base URL:', API_BASE_URL);
 
 // Application State
 const state = {
     items: [],
     taxRate: 16,
     discount: 0,
-    client: {
-        name: '',
-        company: '',
-        email: '',
-        phone: '',
-        address: '',
-        project: ''
-    },
     currentPage: 'dashboard',
-    currentProject: null,
     allProjects: [],
     allQuotations: [],
     allInvoices: [],
     allTasks: [],
     allClients: [],
     currentUser: null,
-    clientSortColumn: 'name',
-    clientSortDirection: 'asc',
     clientFilterQuery: '',
     isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
     currentEdit: null,
@@ -56,10 +45,10 @@ async function apiFetch(url, options = {}) {
         console.log(`API Fetch: ${options.method || 'GET'} ${url}`);
         const response = await fetch(url, options);
 
-        // Handle 401 Unauthorized - redirect to login
-        if (response.status === 401) {
-            showLoginScreen();
-            throw new Error('Authentication required. Please login again.');
+        // Handle 401 Unauthorized - but don't throw for session checks
+        if (response.status === 401 && url.includes('/auth/check-session')) {
+            console.log('Session check returned 401 - user not logged in');
+            return { success: false, message: 'Not authenticated' };
         }
 
         // Handle other HTTP errors
@@ -72,6 +61,11 @@ async function apiFetch(url, options = {}) {
                 errorMessage = errorData.message || errorData.error || errorMessage;
             } catch (e) {
                 if (errorText) errorMessage = errorText;
+            }
+            
+            // Don't show notification for session check failures
+            if (!url.includes('/auth/check-session')) {
+                showNotification(errorMessage, 'error');
             }
             
             throw new Error(errorMessage);
@@ -88,9 +82,14 @@ async function apiFetch(url, options = {}) {
     } catch (error) {
         console.error('API Fetch Error:', error.message);
         
-        // Don't show notification for auth-related errors during session check
+        // Don't show notification for session check failures
         if (!url.includes('/auth/check-session')) {
             showNotification(error.message, 'error');
+        }
+        
+        // Return a structured error for session checks
+        if (url.includes('/auth/check-session')) {
+            return { success: false, message: error.message };
         }
         
         throw error;
@@ -158,8 +157,8 @@ function createStatusBadge(status) {
  * Handles user login
  */
 async function handleLogin() {
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
+    const emailInput = document.getElementById('login-email');
+    const passwordInput = document.getElementById('login-password');
     const loginBtn = document.getElementById('loginBtn');
     const loginMessage = document.getElementById('loginMessage');
     
@@ -189,11 +188,14 @@ async function handleLogin() {
     if (loginSpinner) loginSpinner.style.display = 'inline-block';
     
     try {
+        console.log('Attempting login with:', email);
         const result = await apiFetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             body: JSON.stringify({ email, password }),
         });
 
+        console.log('Login response:', result);
+        
         if (result.success) {
             state.currentUser = result.data.user;
             showNotification('Login successful!', 'success');
@@ -250,6 +252,7 @@ async function checkSession() {
     
     try {
         const result = await apiFetch(`${API_BASE_URL}/auth/check-session`);
+        console.log('Session check result:', result);
         
         if (result.success && result.data) {
             state.currentUser = result.data;
@@ -260,7 +263,7 @@ async function checkSession() {
             return false;
         }
     } catch (error) {
-        console.log('Session check failed, assuming not logged in:', error.message);
+        console.log('Session check failed:', error.message);
         return false;
     }
 }
@@ -288,6 +291,12 @@ function showLoginScreen() {
     if (appContainer) {
         appContainer.style.display = 'none';
     }
+    
+    // Clear login form
+    const emailInput = document.getElementById('login-email');
+    const passwordInput = document.getElementById('login-password');
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
 }
 
 function hideLoginScreen() {
@@ -419,7 +428,6 @@ async function loadDashboardStats() {
         }
     } catch (error) {
         console.error('Error loading dashboard stats:', error);
-        showNotification('Failed to load dashboard statistics', 'error');
     }
 }
 
@@ -663,7 +671,7 @@ function renderTasksTable(tasks) {
             <td>${task.title || 'N/A'}</td>
             <td>${task.project_name || 'N/A'}</td>
             <td>${createStatusBadge(task.status).outerHTML}</td>
-            <td>${createPriorityBadge(task.priority).outerHTML}</td>
+            <td><span class="priority-badge priority-${task.priority}">${task.priority}</span></td>
             <td>${formatDate(task.due_date)}</td>
             <td>
                 <button class="btn btn-sm btn-secondary edit-task-btn" data-id="${task.id}">
@@ -676,13 +684,6 @@ function renderTasksTable(tasks) {
         `;
         tableBody.appendChild(row);
     });
-}
-
-function createPriorityBadge(priority) {
-    const badge = document.createElement('span');
-    badge.className = `priority-badge priority-${priority.toLowerCase()}`;
-    badge.textContent = priority;
-    return badge;
 }
 
 async function loadSettings() {
@@ -1177,7 +1178,13 @@ function setupEventListeners() {
     });
     
     // Login form
-    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const passwordInput = document.getElementById('login-password');
+    
+    if (loginBtn) {
+        loginBtn.addEventListener('click', handleLogin);
+    }
+    
     if (passwordInput) {
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -1257,6 +1264,24 @@ function setupEventListeners() {
         }, 300));
     }
     
+    // Add new client button
+    const addNewClientBtn = document.getElementById('addNewClientBtn');
+    if (addNewClientBtn) {
+        addNewClientBtn.addEventListener('click', handleAddNewClient);
+    }
+    
+    // Save client changes button
+    const saveClientChangesBtn = document.getElementById('saveClientChangesBtn');
+    if (saveClientChangesBtn) {
+        saveClientChangesBtn.addEventListener('click', handleSaveClient);
+    }
+    
+    // Cancel client edit button
+    const cancelEditClientBtn = document.getElementById('cancelEditClientBtn');
+    if (cancelEditClientBtn) {
+        cancelEditClientBtn.addEventListener('click', () => closeModal('editClientModal'));
+    }
+    
     // Event delegation for dynamic content
     document.body.addEventListener('click', (e) => {
         // Edit client
@@ -1271,22 +1296,10 @@ function setupEventListeners() {
             handleDeleteClient(btn.dataset.id);
         }
         
-        // View quotation
-        if (e.target.closest('.view-quotation-btn')) {
-            const btn = e.target.closest('.view-quotation-btn');
-            showDocumentDetail('quotation', btn.dataset.id);
-        }
-        
         // Delete quotation
         if (e.target.closest('.delete-quotation-btn')) {
             const btn = e.target.closest('.delete-quotation-btn');
             handleDeleteQuotation(btn.dataset.id);
-        }
-        
-        // View invoice
-        if (e.target.closest('.view-invoice-btn')) {
-            const btn = e.target.closest('.view-invoice-btn');
-            showDocumentDetail('invoice', btn.dataset.id);
         }
         
         // Delete invoice
@@ -1343,6 +1356,7 @@ async function initializeApp() {
     
     if (hasSession) {
         // User is logged in, show main app
+        console.log('User has valid session, showing main app');
         hideLoginScreen();
         
         // Setup event listeners for the main app
@@ -1352,19 +1366,20 @@ async function initializeApp() {
         navigateToPage('dashboard');
     } else {
         // User is not logged in, show login screen
+        console.log('No valid session, showing login screen');
         showLoginScreen();
     }
     
-    // Hide loader
-    const loader = document.querySelector('.loader');
-    if (loader) {
-        setTimeout(() => {
+    // Hide loader after a short delay
+    setTimeout(() => {
+        const loader = document.querySelector('.loader');
+        if (loader) {
             loader.style.opacity = '0';
             setTimeout(() => {
                 loader.style.display = 'none';
             }, 500);
-        }, 500);
-    }
+        }
+    }, 500);
 }
 
 // Start the application when DOM is loaded
