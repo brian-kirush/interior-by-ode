@@ -1450,16 +1450,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Apply mobile/responsive fixes
     applyMobileFixes();
 
-    // Check user session and load initial page
-    const isLoggedIn = await checkSession();
-    if (isLoggedIn) { // If logged in, navigate to the default page.
-        setupEventListeners(); // Setup listeners for the already logged-in user.
-        navigateToPage(state.currentPage);
-    } else {
-        showLoginScreen();
-        if (state.isIOS) {
-            setTimeout(() => document.getElementById('email')?.focus(), 500);
+    try {
+        // Check user session and load initial page
+        const isLoggedIn = await checkSession();
+        if (isLoggedIn) { // If logged in, navigate to the default page.
+            setupEventListeners(); // Setup listeners for the already logged-in user.
+            navigateToPage(state.currentPage);
+        } else {
+            showLoginScreen();
+            if (state.isIOS) {
+                setTimeout(() => document.getElementById('email')?.focus(), 500);
+            }
         }
+    } finally {
+        // Ensure the main loader is always hidden after the initial check.
+        document.querySelector('.loader')?.style.setProperty('opacity', '0');
     }
 });
 
