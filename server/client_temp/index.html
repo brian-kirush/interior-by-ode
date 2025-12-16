@@ -57,6 +57,55 @@
             --accent-blue-rgb: 74, 144, 226;
         }
 
+        /* Screen reader only class */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Status badge styles */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        
+        .status-draft { background: #e3f2fd; color: #1565c0; }
+        .status-sent { background: #fff3e0; color: #ef6c00; }
+        .status-approved { background: #e8f5e9; color: #2e7d32; }
+        .status-rejected { background: #ffebee; color: #c62828; }
+        .status-pending { background: #fff3e0; color: #ef6c00; }
+        .status-paid { background: #e8f5e9; color: #2e7d32; }
+        .status-overdue { background: #ffebee; color: #c62828; }
+        .status-planning { background: #e3f2fd; color: #1565c0; }
+        .status-in_progress { background: #fff3e0; color: #ef6c00; }
+        .status-completed { background: #e8f5e9; color: #2e7d32; }
+        .status-on_hold { background: #f5f5f5; color: #616161; }
+        
+        /* Priority badge styles */
+        .priority-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .priority-low { background: #e8f5e9; color: #2e7d32; }
+        .priority-medium { background: #fff3e0; color: #ef6c00; }
+        .priority-high { background: #ffebee; color: #c62828; }
+        .priority-critical { background: #f3e5f5; color: #7b1fa2; }
+
         /* FIX 1: Prevent body overflow */
         body {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -503,6 +552,7 @@
             position: relative;
             overflow: hidden;
             border: 2px solid transparent;
+            cursor: pointer;
         }
 
         .stat-card:hover {
@@ -1411,7 +1461,7 @@
     </div>
 
     <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn" id="mobileMenuBtn">
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle mobile menu">
         <i class="fas fa-bars"></i>
     </button>
 
@@ -1459,7 +1509,7 @@
                     <p>Professional Interior Design Management System</p>
                 </div>
                 <div class="mobile-nav-wrapper">
-                    <button class="mobile-nav-toggle" id="mobileNavToggle">
+                    <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Toggle navigation menu">
                         <i class="fas fa-bars"></i> Menu
                     </button>
                     <div class="mobile-nav-menu" id="mobileNavMenu">
@@ -1501,32 +1551,32 @@
                     </div>
                     
                     <div class="stats-grid">
-                        <div class="stat-card">
+                        <div class="stat-card" id="activeProjectsCard">
                             <h3>Active Projects</h3>
-                            <div class="stat-value" id="activeProjects">12</div>
+                            <div class="stat-value" id="activeProjects">0</div>
                             <div class="stat-trend positive">
-                                <i class="fas fa-arrow-up"></i> <span id="projectsTrend">3</span>
+                                <i class="fas fa-arrow-up"></i> <span id="projectsTrend">0</span>
                             </div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" id="monthlyRevenueCard">
                             <h3>Monthly Revenue</h3>
-                            <div class="stat-value" id="monthlyRevenue">KSh 450,000</div>
+                            <div class="stat-value" id="monthlyRevenue">KSh 0</div>
                             <div class="stat-trend positive">
-                                <i class="fas fa-arrow-up"></i> <span id="revenueTrend">15%</span>
+                                <i class="fas fa-arrow-up"></i> <span id="revenueTrend">0%</span>
                             </div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" id="pendingTasksCard">
                             <h3>Pending Tasks</h3>
-                            <div class="stat-value" id="pendingTasks">8</div>
+                            <div class="stat-value" id="pendingTasks">0</div>
                             <div class="stat-trend negative">
-                                <i class="fas fa-arrow-down"></i> <span id="tasksTrend">2</span>
+                                <i class="fas fa-arrow-down"></i> <span id="tasksTrend">0</span>
                             </div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" id="clientSatisfactionCard">
                             <h3>Client Satisfaction</h3>
-                            <div class="stat-value" id="clientSatisfaction">96%</div>
+                            <div class="stat-value" id="clientSatisfaction">0%</div>
                             <div class="stat-trend positive">
-                                <i class="fas fa-star"></i> <span id="satisfactionTrend">4%</span>
+                                <i class="fas fa-star"></i> <span id="satisfactionTrend">0%</span>
                             </div>
                         </div>
                     </div>
@@ -1549,6 +1599,9 @@
                                 <button class="btn btn-primary" id="generateQuoteBtn">
                                     <i class="fas fa-file-invoice"></i> Generate Quotation
                                 </button>
+                                <button class="btn btn-secondary" id="saveEditBtn" style="display: none;">
+                                    <i class="fas fa-save"></i> Save Edits
+                                </button>
                             </div>
                         </div>
                         
@@ -1565,14 +1618,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="itemsTableBody">
-                                    <tr id="item-1">
-                                        <td><input type="text" class="form-control" data-field="description" value="Interior Design Consultation" placeholder="Item description"></td>
-                                        <td><input type="text" class="form-control" data-field="unit" value="hrs"></td>
-                                        <td><input type="number" class="form-control" data-field="quantity" value="2" min="0"></td>
-                                        <td><input type="number" class="form-control" data-field="unit_price" value="5000" min="0"></td>
-                                        <td class="item-total">KSh 10,000</td>
-                                        <td><button class="btn btn-sm btn-danger remove-item-btn"><i class="fas fa-trash"></i></button></td>
-                                    </tr>
+                                    <!-- Items will be dynamically added here -->
                                 </tbody>
                             </table>
                         </div>
@@ -1581,28 +1627,24 @@
                             <button class="btn btn-primary" id="addItemBtn">
                                 <i class="fas fa-plus"></i> Add Item
                             </button>
-                            <button class="btn btn-secondary" id="saveDraftQuotationBtn">
-                                <i class="fas fa-save"></i> Save Draft Quotation
-                            </button>
                         </div>
                         
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 25px; margin-bottom: 25px;">
                             <div>
-                                <label style="display: block; margin-bottom: 8px; color: #666; font-weight: 600;">Tax Rate (%)</label>
-                                <input type="number" id="taxRate" value="16" min="0" max="100" step="0.1" 
-                                       style="width: 100%; padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.875rem;">
+                                <label for="taxRate" style="display: block; margin-bottom: 8px; color: var(--gray-700); font-weight: 600;">Tax Rate (%)</label>
+                                <input type="number" id="taxRate" name="taxRate" value="16" min="0" max="100" step="0.1" 
+                                       style="width: 100%; padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: 8px; font-size: 0.875rem;">
                             </div>
                             <div>
-                                <label style="display: block; margin-bottom: 8px; color: #666; font-weight: 600;">Discount (%)</label>
-                                <input type="number" id="discount" value="0" min="0" max="100" step="0.1"
-                                       style="width: 100%; padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.875rem;">
+                                <label for="discount" style="display: block; margin-bottom: 8px; color: var(--gray-700); font-weight: 600;">Discount (%)</label>
+                                <input type="number" id="discount" name="discount" value="0" min="0" max="100" step="0.1"
+                                       style="width: 100%; padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: 8px; font-size: 0.875rem;">
                             </div>
                             <div>
-                                <label style="display: block; margin-bottom: 8px; color: #666; font-weight: 600;">Assign to Client *</label>
-                                <select id="quotationClientSelect" class="form-control">
+                                <label for="quotationClientSelect" style="display: block; margin-bottom: 8px; color: var(--gray-700); font-weight: 600;">Assign to Client *</label>
+                                <select id="quotationClientSelect" name="client" class="form-control" required>
                                      <option value="">-- Select a Client --</option>
-                                     <option value="1">John Doe (john@example.com)</option>
-                                     <option value="2">Jane Smith (jane@example.com)</option>
+                                     <!-- Clients will be dynamically loaded -->
                                 </select>
                             </div>
                         </div>
@@ -1611,11 +1653,11 @@
                             <h4 style="margin-bottom: 18px; color: #333; font-size: 1.125rem;">Quotation Summary</h4>
                             <div class="summary-row">
                                 <span>Subtotal:</span>
-                                <span id="subtotal">KSh 10,000</span>
+                                <span id="subtotal">KSh 0</span>
                             </div>
                             <div class="summary-row">
                                 <span>Tax (<span id="taxRateDisplay">16</span>%):</span>
-                                <span id="taxAmount">KSh 1,600</span>
+                                <span id="taxAmount">KSh 0</span>
                             </div>
                             <div class="summary-row">
                                 <span>Discount (<span id="discountDisplay">0</span>%):</span>
@@ -1623,7 +1665,7 @@
                             </div>
                             <div class="summary-row total">
                                 <span>GRAND TOTAL:</span>
-                                <span id="totalAmount">KSh 11,600</span>
+                                <span id="totalAmount">KSh 0</span>
                             </div>
                         </div>
                     </div>
@@ -1641,7 +1683,8 @@
                         <h3 style="color: var(--jungle-green); font-size: var(--font-size-xl); margin-bottom: 20px;">Saved Quotations</h3>
                         <div style="margin-bottom: 20px; max-width: 400px;">
                              <div style="position: relative;">
-                                <input type="search" id="quotationSearchInput" class="form-control" placeholder="Search by number or client...">
+                                <label for="quotationSearchInput" class="sr-only">Search quotations</label>
+                                <input type="search" id="quotationSearchInput" name="searchQuotation" class="form-control" placeholder="Search by number or client..." autocomplete="off">
                             </div>
                         </div>
                         <div class="items-table-wrapper" style="overflow-x: auto;">
@@ -1657,20 +1700,30 @@
                                     </tr>
                                 </thead>
                                 <tbody id="quotationsTableBody">
-                                    <tr>
-                                        <td>QT-2024-001</td>
-                                        <td>John Doe</td>
-                                        <td>Mar 15, 2024</td>
-                                        <td>KSh 45,000</td>
-                                        <td><span class="status-badge" style="background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">Approved</span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-secondary">View</button>
-                                            <button class="btn btn-sm btn-secondary">Edit</button>
-                                            <button class="btn btn-sm btn-danger">Delete</button>
-                                        </td>
-                                    </tr>
+                                    <!-- Quotations will be dynamically loaded -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Quotation Detail View -->
+                    <div id="quotationDetailContainer" class="calculator-container" style="display: none;">
+                        <div class="calculator-header">
+                            <h3 id="quotationDetailTitle">Quotation Details</h3>
+                            <div class="calculator-actions">
+                                <button class="btn btn-secondary" id="backToQuotesListBtn">
+                                    <i class="fas fa-arrow-left"></i> Back to List
+                                </button>
+                                <button class="btn btn-primary" id="downloadQuotationBtn">
+                                    <i class="fas fa-download"></i> Download PDF
+                                </button>
+                                <button class="btn btn-secondary" id="printQuotationBtn">
+                                    <i class="fas fa-print"></i> Print
+                                </button>
+                            </div>
+                        </div>
+                        <div id="quotationContent" class="pdf-content">
+                            <!-- Quotation content will be loaded here -->
                         </div>
                     </div>
                 </section>
@@ -1687,7 +1740,8 @@
                         <h3 style="color: var(--jungle-green); font-size: var(--font-size-xl); margin-bottom: 20px;">Saved Invoices</h3>
                         <div style="margin-bottom: 20px; max-width: 400px;">
                              <div style="position: relative;">
-                                <input type="search" id="invoiceSearchInput" class="form-control" placeholder="Search by number or client...">
+                                <label for="invoiceSearchInput" class="sr-only">Search invoices</label>
+                                <input type="search" id="invoiceSearchInput" name="searchInvoice" class="form-control" placeholder="Search by number or client..." autocomplete="off">
                             </div>
                         </div>
                         <div class="items-table-wrapper" style="overflow-x: auto;">
@@ -1704,21 +1758,36 @@
                                     </tr>
                                 </thead>
                                 <tbody id="invoicesTableBody">
-                                    <tr>
-                                        <td>INV-2024-001</td>
-                                        <td>Jane Smith</td>
-                                        <td>Mar 10, 2024</td>
-                                        <td>Apr 10, 2024</td>
-                                        <td>KSh 75,000</td>
-                                        <td><span class="status-badge" style="background: #fff3e0; color: #ef6c00; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">Pending</span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-secondary">View</button>
-                                            <button class="btn btn-sm btn-secondary">Edit</button>
-                                            <button class="btn btn-sm btn-danger">Delete</button>
-                                        </td>
-                                    </tr>
+                                    <!-- Invoices will be dynamically loaded -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Invoice Detail View -->
+                    <div id="invoiceDetailContainer" class="calculator-container" style="display: none;">
+                        <div class="calculator-header">
+                            <h3 id="invoiceDetailTitle">Invoice Details</h3>
+                            <div class="calculator-actions">
+                                <button class="btn btn-secondary" id="backToInvoicesListBtn">
+                                    <i class="fas fa-arrow-left"></i> Back to List
+                                </button>
+                                <button class="btn btn-primary" id="downloadInvoiceBtn">
+                                    <i class="fas fa-download"></i> Download PDF
+                                </button>
+                                <button class="btn btn-secondary" id="printInvoiceBtn">
+                                    <i class="fas fa-print"></i> Print
+                                </button>
+                                <button class="btn btn-success" id="markAsPaidBtn">
+                                    <i class="fas fa-check-circle"></i> Mark as Paid
+                                </button>
+                                <button class="btn btn-danger" id="markAsOverdueBtn">
+                                    <i class="fas fa-exclamation-circle"></i> Mark as Overdue
+                                </button>
+                            </div>
+                        </div>
+                        <div id="invoiceContent" class="pdf-content">
+                            <!-- Invoice content will be loaded here -->
                         </div>
                     </div>
                 </section>
@@ -1732,15 +1801,24 @@
                     
                     <div class="calculator-container fade-in-up">
                         <h3 style="color: var(--jungle-green); margin-bottom: 16px; font-size: var(--font-size-xl);">Project Workflow</h3>
-                        <p style="color: var(--gray-600); margin-bottom: 20px;">Select a project to manage tasks and workflow.</p>
+                        <p style="color: var(--gray-600); margin-bottom: 20px;">View and manage all tasks across projects.</p>
                         
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; margin-bottom: 8px; color: var(--gray-700); font-weight: 600;">Select Project</label>
-                            <select id="projectSelect" style="width: 100%; padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: 8px; font-size: var(--font-size-sm);">
-                                <option value="">-- Select a Project --</option>
-                                <option value="1">Westlands Apartment Renovation</option>
-                                <option value="2">Karen Villa Interior Design</option>
-                            </select>
+                        <div class="items-table-wrapper" style="overflow-x: auto;">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Task</th>
+                                        <th>Project</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Due Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tasksTableBody">
+                                    <!-- Tasks will be dynamically loaded -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
@@ -1756,7 +1834,8 @@
                             <h3 style="color: var(--jungle-green); font-size: var(--font-size-xl); margin-bottom: 0;">All Clients</h3>
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <div style="flex-grow: 1; max-width: 300px;">
-                                    <input type="search" id="clientSearchInput" class="form-control" placeholder="Search clients...">
+                                    <label for="clientSearchInput" class="sr-only">Search clients</label>
+                                    <input type="search" id="clientSearchInput" name="searchClient" class="form-control" placeholder="Search clients..." autocomplete="off">
                                 </div>
                                 <button class="btn btn-primary" id="addNewClientBtn"><i class="fas fa-user-plus"></i> Add New Client</button>
                             </div>
@@ -1773,26 +1852,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="clientsTableBody">
-                                    <tr>
-                                        <td>John Doe</td>
-                                        <td>ABC Corporation</td>
-                                        <td>john@example.com</td>
-                                        <td>+254 712 345 678</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-secondary">Edit</button>
-                                            <button class="btn btn-sm btn-danger">Delete</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Jane Smith</td>
-                                        <td>XYZ Ltd</td>
-                                        <td>jane@example.com</td>
-                                        <td>+254 723 456 789</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-secondary">Edit</button>
-                                            <button class="btn btn-sm btn-danger">Delete</button>
-                                        </td>
-                                    </tr>
+                                    <!-- Clients will be dynamically loaded -->
                                 </tbody>
                             </table>
                         </div>
@@ -1808,48 +1868,48 @@
                     <div class="calculator-container fade-in-up">
                         <h3 style="color: var(--jungle-green); margin-bottom: 20px; font-size: var(--font-size-xl);">Company Information</h3>
                         <div class="form-group">
-                            <label>Company Name</label>
-                            <input type="text" class="form-control" id="settingCompanyName" value="Interiors by Ode">
+                            <label for="settingCompanyName">Company Name</label>
+                            <input type="text" id="settingCompanyName" name="companyName" class="form-control" value="Interiors by Ode" autocomplete="organization">
                         </div>
                         <div class="form-group">
-                            <label>Company Address</label>
-                            <textarea class="form-control" id="settingCompanyAddress" rows="2">123 Design Street, Nairobi, Kenya</textarea>
+                            <label for="settingCompanyAddress">Company Address</label>
+                            <textarea id="settingCompanyAddress" name="companyAddress" class="form-control" rows="2" autocomplete="street-address">123 Design Street, Nairobi, Kenya</textarea>
                         </div>
                         <div class="form-group">
-                            <label>Company Phone</label>
-                            <input type="tel" class="form-control" id="settingCompanyPhone" value="+254 700 123 456">
+                            <label for="settingCompanyPhone">Company Phone</label>
+                            <input type="tel" id="settingCompanyPhone" name="companyPhone" class="form-control" value="+254 700 123 456" autocomplete="tel">
                         </div>
                         <div class="form-group">
-                            <label>Company Email</label>
-                            <input type="email" class="form-control" id="settingCompanyEmail" value="info@interiorsbyode.com">
+                            <label for="settingCompanyEmail">Company Email</label>
+                            <input type="email" id="settingCompanyEmail" name="companyEmail" class="form-control" value="info@interiorsbyode.com" autocomplete="email">
                         </div>
 
                         <h3 style="color: var(--jungle-green); margin-top: 30px; margin-bottom: 20px; font-size: var(--font-size-xl);">Financial Settings</h3>
                         <div class="form-group">
-                            <label>Default Tax Rate (%)</label>
-                            <input type="number" class="form-control" id="settingDefaultTaxRate" value="16" min="0" step="0.1">
+                            <label for="settingDefaultTaxRate">Default Tax Rate (%)</label>
+                            <input type="number" id="settingDefaultTaxRate" name="defaultTaxRate" class="form-control" value="16" min="0" step="0.1">
                         </div>
 
                         <h3 style="color: var(--jungle-green); margin-top: 30px; margin-bottom: 20px; font-size: var(--font-size-xl);">Payment Information</h3>
                         <div class="form-group">
-                            <label>Bank Name</label>
-                            <input type="text" class="form-control" id="settingBankName" value="Equity Bank Kenya">
+                            <label for="settingBankName">Bank Name</label>
+                            <input type="text" id="settingBankName" name="bankName" class="form-control" value="Equity Bank Kenya">
                         </div>
                         <div class="form-group">
-                            <label>Account Name</label>
-                            <input type="text" class="form-control" id="settingAccountName" value="Interiors by Ode">
+                            <label for="settingAccountName">Account Name</label>
+                            <input type="text" id="settingAccountName" name="accountName" class="form-control" value="Interiors by Ode">
                         </div>
                         <div class="form-group">
-                            <label>Account Number</label>
-                            <input type="text" class="form-control" id="settingAccountNumber" value="1234567890">
+                            <label for="settingAccountNumber">Account Number</label>
+                            <input type="text" id="settingAccountNumber" name="accountNumber" class="form-control" value="1234567890">
                         </div>
                         <div class="form-group">
-                            <label>M-Pesa Paybill</label>
-                            <input type="text" class="form-control" id="settingMpesaPaybill" value="123456">
+                            <label for="settingMpesaPaybill">M-Pesa Paybill</label>
+                            <input type="text" id="settingMpesaPaybill" name="mpesaPaybill" class="form-control" value="123456">
                         </div>
                         <div class="form-group">
-                            <label>M-Pesa Account Reference</label>
-                            <input type="text" class="form-control" id="settingMpesaAccountRef" value="Use invoice number or name">
+                            <label for="settingMpesaAccountRef">M-Pesa Account Reference</label>
+                            <input type="text" id="settingMpesaAccountRef" name="mpesaAccountRef" class="form-control" value="Use invoice number or name">
                         </div>
 
                         <div style="margin-top: 30px; text-align: right;">
@@ -1871,16 +1931,189 @@
             <div class="login-body">
                 <div id="loginMessage" class="login-message"></div>
                 <div class="form-group">
-                    <input type="text" id="email" class="form-control" placeholder="Email" value="admin@interiorsbyode.com">
+                    <label for="login-email" class="sr-only">Email Address</label>
+                    <input type="email" id="login-email" name="email" class="form-control" placeholder="Enter your email" value="admin@interiorsbyode.com" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="password" class="form-control" placeholder="Password" value="ode">
+                    <label for="login-password" class="sr-only">Password</label>
+                    <input type="password" id="login-password" name="password" class="form-control" placeholder="Enter your password" value="ode" autocomplete="current-password" required>
                 </div>
                 <button class="btn btn-primary" id="loginBtn" style="width: 100%; justify-content: center;">
                     <span class="login-btn-text">
                         <i class="fas fa-sign-in-alt"></i> Login
                     </span>
                     <span class="loader-spinner" style="display: none; width: 20px; height: 20px; border-width: 2px; margin: 0;"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Client Modal -->
+    <div class="modal" id="editClientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="editClientModalTitle">Add New Client</h3>
+            </div>
+            <div class="modal-body">
+                <form id="editClientForm">
+                    <input type="hidden" id="editClientId" name="id">
+                    <div class="form-group">
+                        <label for="editClientName">Full Name *</label>
+                        <input type="text" id="editClientName" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editClientCompany">Company</label>
+                        <input type="text" id="editClientCompany" name="company" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="editClientEmail">Email Address *</label>
+                        <input type="email" id="editClientEmail" name="email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editClientPhone">Phone Number</label>
+                        <input type="tel" id="editClientPhone" name="phone" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="editClientAddress">Address</label>
+                        <textarea id="editClientAddress" name="address" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEditClientBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveClientChangesBtn">Save Client</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Project Modal -->
+    <div class="modal" id="editProjectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Project</h3>
+            </div>
+            <div class="modal-body">
+                <form id="editProjectForm">
+                    <input type="hidden" id="editProjectId" name="id">
+                    <div class="form-group">
+                        <label for="editProjectName">Project Name *</label>
+                        <input type="text" id="editProjectName" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProjectDescription">Description</label>
+                        <textarea id="editProjectDescription" name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProjectClient">Client</label>
+                        <select id="editProjectClient" name="client_id" class="form-control">
+                            <option value="">-- Select Client --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProjectBudget">Budget (KSh)</label>
+                        <input type="number" id="editProjectBudget" name="budget" class="form-control" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="editProjectStatus">Status</label>
+                        <select id="editProjectStatus" name="status" class="form-control">
+                            <option value="planning">Planning</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="on_hold">On Hold</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProjectProgress">Progress (%)</label>
+                        <input type="range" id="editProjectProgress" name="progress" class="form-control" min="0" max="100" value="0">
+                        <span id="editProjectProgressValue">0%</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProjectStartDate">Start Date</label>
+                        <input type="date" id="editProjectStartDate" name="start_date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="editProjectDeadline">Deadline</label>
+                        <input type="date" id="editProjectDeadline" name="deadline" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="editProjectNotes">Notes</label>
+                        <textarea id="editProjectNotes" name="notes" class="form-control" rows="4"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEditProjectBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveProjectChangesBtn">Save Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div class="modal" id="editTaskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Task</h3>
+            </div>
+            <div class="modal-body">
+                <form id="editTaskForm">
+                    <input type="hidden" id="editTaskId" name="id">
+                    <div class="form-group">
+                        <label for="editTaskTitle">Task Title *</label>
+                        <input type="text" id="editTaskTitle" name="title" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTaskDescription">Description</label>
+                        <textarea id="editTaskDescription" name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTaskStatus">Status</label>
+                        <select id="editTaskStatus" name="status" class="form-control">
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTaskPriority">Priority</label>
+                        <select id="editTaskPriority" name="priority" class="form-control">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTaskAssignedTo">Assigned To</label>
+                        <input type="text" id="editTaskAssignedTo" name="assigned_to" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="editTaskDueDate">Due Date</label>
+                        <input type="date" id="editTaskDueDate" name="due_date" class="form-control">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEditTaskBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveTaskChangesBtn">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Document Modal -->
+    <div class="modal" id="viewDocumentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Document Details</h3>
+            </div>
+            <div class="modal-body">
+                <div id="documentContent" class="document-content">
+                    <!-- Document content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closeDocumentViewerBtn">Close</button>
+                <button class="btn btn-primary" id="downloadDocumentBtn">
+                    <i class="fas fa-download"></i> Download PDF
                 </button>
             </div>
         </div>
